@@ -8,7 +8,10 @@
 ```diff
 - <!-- create an image tag. That's it-->
 - <img src='IP_OF_liveimage:PORT'>
+```
 
+
+### Build
 
 ```javascript
 clone the repo
@@ -59,7 +62,10 @@ use following approach:
 ?>
 ```
 
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true))](https://github.com/comarius/liveimage/blob/master/Docs/liveimage.mp4?raw=true)
+
+    -If the vide does notplay, download it and play it locally
+    
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimage.mp4?raw=true)
 
 
 
