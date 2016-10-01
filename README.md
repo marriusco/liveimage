@@ -5,6 +5,11 @@
 ### Does not require video tags and or any other playback controls. 
 ### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port' / &gt;.
 
+```diff
+- <!-- create an image tag. That's it-->
+- <img src='IP_OF_liveimage:PORT'>
+
+
 ```javascript
 clone the repo
 install prerequisites
@@ -55,7 +60,8 @@ use following approach:
 
 ```
 
-![alt text](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true "snap")
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv?raw=true)
+
 
 
 ### Automating
