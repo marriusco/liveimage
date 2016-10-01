@@ -63,7 +63,7 @@ use following approach:
 ```
 
 
-    -If the vide does notplay, download it and play it locally
+    -If the video does not play, download it and play it locally
     
 [![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimage.mp4?raw=true)
 
