@@ -55,7 +55,10 @@ use following approach:
 
 ```
 
-![alt text]("https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv")
+![alt text]("")
+
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv)](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv)
+
 
 
 ### Automating
