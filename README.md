@@ -79,7 +79,7 @@ trap ex SIGUSR1
 while [[ 1 ]]; do
     sleep 1
 done
-kill -9 (pidof v4l2net)
+kill -9 (pidof liveimage)
 
 ```
 
