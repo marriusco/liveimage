@@ -60,7 +60,7 @@ use following approach:
 
 ```
 
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv?raw=true)
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mov?raw=true)
 
 
 
@@ -94,4 +94,4 @@ kill -9 (pidof liveimage)
 
 
 Marius C. Developed on the Last week of September, 2016
-Credits: motion, imagemagic, v4l2grab 
+Credits: jpegstreamer, motion, imagemagic, v4l2grab 
