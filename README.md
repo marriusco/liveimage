@@ -60,7 +60,7 @@ use following approach:
 
 ### Automating
 
-'liveimage -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60' would save every 2 seconds a snapsot called filename.jpg. If the filename requires post-processing the '-g' flag is the saviour. Passing a process id via -g, v4l2net would signal that process by SIGUSR1. Following bash shows the concept.
+'liveimage -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60' would save every 2 seconds a snapsot called filename.jpg. If the filename requires post-processing the '-g' flag is the saviour. Passing a process id via -g, liveimage would signal that process by SIGUSR1. Following bash shows the concept.
 
 ```javascript
 #!/bin/bash
