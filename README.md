@@ -6,8 +6,8 @@
 ### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port' / &gt;.
 
 ```diff
-+ this will be highlighted in green
-```
+- <!-- create an image tag. That's it-->
+- <img src='IP_OF_liveimage:PORT'>
 
 
 ```javascript
