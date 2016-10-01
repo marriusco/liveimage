@@ -5,6 +5,11 @@
 ### Does not require video tags and or any other playback controls. 
 ### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port' / &gt;.
 
+```diff
++ this will be highlighted in green
+```
+
+
 ```javascript
 clone the repo
 install prerequisites
