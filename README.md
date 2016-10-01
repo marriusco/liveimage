@@ -1,6 +1,6 @@
-# v4l2net Camera streaming/snapping for Linux
+# liveimage  (Animated JPG, Animated PNG)
 
-## Camera streaming Live to animated JPG or PNG . 
+## Camera streamingive to animated JPG or PNG . 
 ### Does not require javascript, 
 ### Does not require video tags and or any other playback controls. 
 ### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port' / &gt;.
