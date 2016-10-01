@@ -1,3 +1,0 @@
-/home/marius/APPS/GITHUB/REPO/liveimage/CMakeFiles/edit_cache.dir
-/home/marius/APPS/GITHUB/REPO/liveimage/CMakeFiles/rebuild_cache.dir
-/home/marius/APPS/GITHUB/REPO/liveimage/CMakeFiles/liveimage.dir

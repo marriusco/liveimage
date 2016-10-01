@@ -1,1 +1,0 @@
-g++    -std=c++11 -fexceptions -Wall -fpermissive   CMakeFiles/liveimage.dir/main.cpp.o CMakeFiles/liveimage.dir/jpeger.cpp.o CMakeFiles/liveimage.dir/outfilefmt.cpp.o CMakeFiles/liveimage.dir/pnger.cpp.o CMakeFiles/liveimage.dir/sock.cpp.o CMakeFiles/liveimage.dir/sockserver.cpp.o CMakeFiles/liveimage.dir/v4ldevice.cpp.o  -o liveimage -rdynamic -lpng -ljpeg -lv4l2 
