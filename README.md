@@ -16,7 +16,7 @@ cmake .
 make
 sudo adduser $USER video
 #run
-./v4l2net
+./liveimage
 -d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!
 -s Http server port.
 -o Output filename, no extension (extension added by format [-f]). 
@@ -39,13 +39,13 @@ sudo adduser $USER video
   
   - For timelapse  snapshots, and have the live previev at the same time use -f and -n flags
   - Next would preview at 30 fps and would save an snapsot in filename.jpg each 60 frames (2 seconds)
-    - ./v4l2net -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60
+    - ./liveimage -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60
  
 ### PHP
 
 If you have Apache, Nginx or Lighttpd running, to add a live preview to a php page
 use following approach:
-   - have v4l2net running, install it in sysV as a service.
+   - have liveimage running, install it in sysV as a service.
     
 ```javascript
 
