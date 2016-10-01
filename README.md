@@ -57,10 +57,9 @@ use following approach:
 <?php
      echo "<img src='http://{$_SERVER['SERVER_ADDR']}:8080' />";
 ?>
-
 ```
 
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)(https://github.com/comarius/liveimage/blob/master/Docs/liveimage.mov?raw=true)
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true))](https://github.com/comarius/liveimage/blob/master/Docs/liveimage.mov?raw=true)
 
 
 
