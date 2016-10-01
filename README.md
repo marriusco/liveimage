@@ -60,7 +60,7 @@ use following approach:
 
 ```
 
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mov?raw=true)
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=truhttps://github.com/comarius/liveimage/blob/master/Docs/liveimage.mov?raw=true)
 
 
 
