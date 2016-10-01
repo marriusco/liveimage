@@ -55,7 +55,7 @@ use following approach:
 
 ```
 
-![alt text]("https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv?raw=true "snap")
+![alt text]("https://github.com/comarius/liveimage/blob/master/Docs/liveimmage.mkv")
 
 
 ### Automating
