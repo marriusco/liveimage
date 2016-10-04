@@ -3,11 +3,12 @@
 ## Camera streamingive to animated JPG or PNG . 
 ### Does not require javascript, 
 ### Does not require video tags and or any other playback controls. 
-### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port' / &gt;.
+### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 
 ```diff
 - <!-- create an image tag. That's it-->
-- <img src='IP_OF_liveimage:PORT'>
+- <img src='IP_OF_liveimage:PORT/?live'>
+- <img src='IP_OF_liveimage:PORT/?motion'>  <!-- under development -->
 ```
 
 
@@ -58,7 +59,7 @@ use following approach:
 ```javascript
 
 <?php
-     echo "<img src='http://{$_SERVER['SERVER_ADDR']}:8080' />";
+     echo "<img src='http://{$_SERVER['SERVER_ADDR']}:8080/?live' />";
 ?>
 ```
 
