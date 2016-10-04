@@ -1,12 +1,12 @@
 #!/bin/bash
 
-
+echo running this bash pid:$$
 function ex
 {
     echo "file was saved"
 }
 
-trap ex SIGUSR1
+trap ex SIGUSR2
 
 ./liveimage -d /dev/video0 -o filename -s 8080 -s 8080 -m 100 -g $$ &
 

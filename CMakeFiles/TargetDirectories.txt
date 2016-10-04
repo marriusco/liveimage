@@ -1,0 +1,1 @@
+/home/pi/liveimage/CMakeFiles/liveimage.dir

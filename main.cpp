@@ -83,7 +83,7 @@ int main(int nargs, char* vargs[])
     int         height=480;
     int         fps = 30;
     string      filename="";
-    int         signal = 0;
+    int         nsignal = 0;
     int         filesaveframes = 30;
     for(int k=0; k<nargs; ++k)
     {
@@ -98,8 +98,8 @@ int main(int nargs, char* vargs[])
                 device = vargs[k];
                 break;
             case 'g':
-                signal = ::atoi(vargs[k]);
-                std::cout << "will signal process: " << signal << "\n";
+                nsignal = ::atoi(vargs[k]);
+                std::cout << "will signal process: " << nsignal << "\n";
                 break;
             case 's':
                 port = ::atoi(vargs[k]);
@@ -188,13 +188,13 @@ int main(int nargs, char* vargs[])
         uint8_t*        pjpg;
         const uint8_t*  video420;
         bool            capture=false;
-        bool            signal=false;
+        bool            shotsignal=false;
 
         while(__alive  && 0 == ::usleep(1000))
         {
             if(ps)ps->spin();
-            signal = sigcapt && __capture; //signal by SIGUSR1
-            capture |= signal | motion | !filename.empty();
+            shotsignal = sigcapt && __capture; //signal by SIGUSR1
+            capture |= shotsignal | motion | !filename.empty();
             capture |= ps && ps->has_clients();
             capture |= (++ct % delay) == 0;
             if(capture == 0)
@@ -212,9 +212,11 @@ int main(int nargs, char* vargs[])
                         {
                             fwrite(pjpg,1,jpgsz,pf);
                             fclose(pf);
-                            if(signal)
-                                kill(signal, SIGUSR1);
-                            // std::cout << "saving: " << filename << "\n";
+                            if(nsignal){
+                                ::kill(nsignal, SIGUSR2);
+	                        std::cout << "SIGUSR2: " << nsignal << "\n";
+			     }
+                             std::cout << "saving: " << filename << "\n";
                         }
                         sigcapt=0;
                         __capture=false;
@@ -266,8 +268,8 @@ static int _usage()
     std::cout <<
               "-d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!\n"
               "-s Http server port.\n"
-              "-g PID Proces where to send the SIGUSR1 after output is updated.\n"
-              "-c signal SIGUSR2 for let go a capture.\n"
+              "-g PID Proces where to send the SIGUSR2 after output is updated.\n"
+              "-c signal SIGUSR1 for let go a capture.\n"
               "-o Output filename, no extension (extension added by format [-i]). \n"
               "-i jpg|png Image format. Default jpg\n"
               "-q NN JPEG quality (0-100). Default 90%\n"
