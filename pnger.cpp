@@ -120,8 +120,16 @@ DONE:
     return _png.accum;
 }
 
+
+uint32_t pnger::convertBW(const uint8_t* uint8buf, int w, int h, int isize,
+                       int quality, uint8_t** pjpeg)
+{
+    return 0;
+}
+
 void _png_flush(png_structp png_ptr)
 {
+
 }
 
 static void _png_write_data(png_structp png_ptr, png_bytep data, png_size_t length)
@@ -140,3 +148,4 @@ static void _png_write_data(png_structp png_ptr, png_bytep data, png_size_t leng
     memcpy(p->buffer + p->accum, data, length);
     p->accum += length;
 }
+

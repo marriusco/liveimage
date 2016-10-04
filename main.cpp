@@ -57,6 +57,7 @@ void Capture (int i)
 
 int main(int nargs, char* vargs[])
 {
+    std::cout << vargs[0] << "\n";
     if(nargs==1 )
     {
         return _usage();
@@ -73,6 +74,7 @@ int main(int nargs, char* vargs[])
     std::string  device= "/dev/video0";
     std::string protocol="http";
     std::string format="jpg";
+    int         oneshot=0;
     int         sigcapt=0;
     int         motion=0;
     int         port=0;
@@ -82,8 +84,8 @@ int main(int nargs, char* vargs[])
     int         fps = 30;
     string      filename="";
     int         signal = 0;
-    int         delta = 30;
-    for(int k=0;k<nargs;++k)
+    int         filesaveframes = 30;
+    for(int k=0; k<nargs; ++k)
     {
         if(vargs[k][0]=='-')
         {
@@ -92,61 +94,62 @@ int main(int nargs, char* vargs[])
                 return _usage();
             switch(vargs[pk][1])
             {
-                case 'd':
-                    device = vargs[k];
-                    break;
-                case 'g':
-                    signal = ::atoi(vargs[k]);
-                    std::cout << "will signal process: " << signal << "\n";
-                    break;
-                case 's':
-                    port = ::atoi(vargs[k]);
-                    break;
-                case 'o':
-                    {
-                        filename = vargs[k];
-                        size_t fd = filename.find('.');
-                        if(fd != string::npos)
-                            filename=filename.substr(0,fd);
-                    }
-                    break;
-                case 'q':
-                    quality = ::atoi(vargs[k]);
-                    break;
-                case 'm':
-                    motion = ::atoi(vargs[k]);
-                    break;
-                case 'z':
-                    {
-                        int two = sscanf(vargs[k],"%dx%d", &width, &height);
-                        if(two != 2)
-                            return _usage();
-                    }
-                    break;
-                case 'f':  ///  fps http
-                    fps = atoi(vargs[k]);
-                    if(fps>50)fps=50;
-                    if(fps<0)fps=0;
-                    break;
-                case 'n':  ///  delay between frames
-                    delta = ::atoi(vargs[k]);
-                    break;
-                case 'i':
-                    format = vargs[k];
-                    break;
-                case 'c':
-                    sigcapt = 1; // ::atoi(vargs[k]);
-                    break;
-                case 'v':
-                    std::cout << V4L2NET_VERSION << "\n";
-                    return 0;
-                default:
+            case 'd':
+                device = vargs[k];
+                break;
+            case 'g':
+                signal = ::atoi(vargs[k]);
+                std::cout << "will signal process: " << signal << "\n";
+                break;
+            case 's':
+                port = ::atoi(vargs[k]);
+                break;
+            case 'o':
+            {
+                filename = vargs[k];
+                size_t fd = filename.find('.');
+                if(fd != string::npos)
+                    filename=filename.substr(0,fd);
+            }
+            break;
+            case 'r':
+                oneshot=::atoi(vargs[k]);
+                break;
+            case 'q':
+                quality = ::atoi(vargs[k]);
+                break;
+            case 'm':
+                motion = ::atoi(vargs[k]);
+                break;
+            case 'z':
+            {
+                int two = sscanf(vargs[k],"%dx%d", &width, &height);
+                if(two != 2)
                     return _usage();
-              }
+            }
+            break;
+            case 'f':  ///  fps http
+                fps = atoi(vargs[k]);
+                if(fps>50)fps=50;
+                if(fps<0)fps=1;
+                break;
+            case 'n':  ///  delay between frames
+                filesaveframes = ::atoi(vargs[k]);
+                break;
+            case 'i':
+                format = vargs[k];
+                break;
+            case 'c':
+                sigcapt = 1; // ::atoi(vargs[k]);
+                break;
+            case 'v':
+                std::cout << V4L2NET_VERSION << "\n";
+                return 0;
+            default:
+                return _usage();
+            }
         }
     }
-    int          realfps = fps;
-    if(realfps==0)realfps=1;
     outfilefmt* ffmt = 0;
     int         w,h;
     size_t      sz ;
@@ -164,9 +167,10 @@ int main(int nargs, char* vargs[])
             filename += ".png";
     }
 
-    v4ldevice   dev(device.c_str(), width, height, realfps, motion);
+    v4ldevice   dev(device.c_str(), width, height, fps, motion);
     if(dev.open())
     {
+        std::cout << device << " opened\n";
         sockserver* ps = 0;
         if(port)
         {
@@ -178,41 +182,57 @@ int main(int nargs, char* vargs[])
             }
         }
 
-        int framelet = 1000/realfps;
-        uint32_t ct = framelet-1;
-        uint32_t snap=0;
-        uint8_t* pjpg;
-        const uint8_t* video420;
+        int             delay   = 1000/fps;
+        uint32_t        ct = delay-1;
+        uint32_t        snap=0;
+        uint8_t*        pjpg;
+        const uint8_t*  video420;
+        bool            capture=false;
+        bool            signal=false;
 
-        if(fps==0)
+        while(__alive  && 0 == ::usleep(1000))
         {
-            framelet=1;
-            ct = 0;
-        }
-
-        while(__alive)
-        {
-            bool letgo = sigcapt && __capture;
-
-            if(ps && ps->spin());
-            letgo |= motion | !filename.empty();
-            letgo |= (ps && ps->has_clients()) ;
-            if(letgo && (++ct % framelet == 0))
+            if(ps)ps->spin();
+            signal = sigcapt && __capture; //signal by SIGUSR1
+            capture |= signal | motion | !filename.empty();
+            capture |= ps && ps->has_clients();
+            capture |= (++ct % delay) == 0;
+            if(capture == 0)
+                continue;
+            video420 = dev.acquire(w, h, sz);
+            if(video420)
             {
-                video420 = dev.acquire(w, h, sz);
-                if(video420)
+                uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
+                if(jpgsz )
                 {
-                    uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
-                    if(jpgsz )
+                    if((sigcapt || ct % filesaveframes==0)&& !filename.empty())
                     {
-                        if(sigcapt)
+                        FILE* pf = fopen(filename.c_str(),"wb");
+                        if(pf)
                         {
-                            --snap;
-                            delta=2;
+                            fwrite(pjpg,1,jpgsz,pf);
+                            fclose(pf);
+                            if(signal)
+                                kill(signal, SIGUSR1);
+                            std::cout << "saving: " << filename << "\n";
                         }
-                        if( ((++snap % delta == 0)|| (sigcapt && __capture)|| fps==0) && !filename.empty())
+                        sigcapt=0;
+                        __capture=false;
+                        if(--oneshot==1) // one shot
+                            break;
+                    }
+                    if(ps && ps->has_clients())
+                    {
+                        ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", true);
+                        int w, h;
+                        size_t sz;
+                        const uint8_t* mot = dev.getm(w, h, sz);
+                        if(mot)
                         {
-                            FILE* pf = fopen(filename.c_str(),"wb");
+                            uint32_t jpgsz = ffmt->convertBW(mot, w, h, sz, quality, &pjpg);
+                            ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", false);
+                            /*
+                            FILE* pf = fopen("motion.jpg","wb");
                             if(pf)
                             {
                                 fwrite(pjpg,1,jpgsz,pf);
@@ -221,19 +241,17 @@ int main(int nargs, char* vargs[])
                                     kill(signal, SIGUSR1);
                                 std::cout << "saving: " << filename << "\n";
                             }
-                           sigcapt=0;
-			    __capture=false;
-                            if(fps==0)
-                                break;
-                        }
-                        if(ps && ps->has_clients())
-                        {
-                            ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png");
+                            */
+
                         }
                     }
                 }
             }
-            ::usleep(1000); // 1 milli
+            if(ps->socket()<0 || ps->socket()>32)
+            {
+                assert(0);
+            }
+
         }
         delete ps;
         dev.close();
@@ -246,18 +264,17 @@ int main(int nargs, char* vargs[])
 static int _usage()
 {
     std::cout <<
-        "-d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!\n"
-		"-s Http server port.\n"
-		"-g PID Proces where to send the SIGUSR1 after output is updated.\n"
-        	"-c signal SIGUSR2 for let go a capture.\n"
-		"-o Output filename, no extension (extension added by format [-i]). \n"
-		"-i jpg|png Image format. Default jpg\n"
-		"-q NN JPEG quality (0-100). Default 90%\n"
-		"-z WxH Image width and height. Could be adjusted. Default 640x480\n"
-		"-f FFF frames per second \n"
-		"-n NNN At how many frames [-f] to save a snapshot\n"
-		"-m NNN Capture when motion, motion sensitivity\n";
-    sleep (1);
+              "-d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!\n"
+              "-s Http server port.\n"
+              "-g PID Proces where to send the SIGUSR1 after output is updated.\n"
+              "-c signal SIGUSR2 for let go a capture.\n"
+              "-o Output filename, no extension (extension added by format [-i]). \n"
+              "-i jpg|png Image format. Default jpg\n"
+              "-q NN JPEG quality (0-100). Default 90%\n"
+              "-z WxH Image width and height. Could be adjusted. Default 640x480\n"
+              "-f FFF frames per second \n"
+              "-n NNN At how many frames [-f] to save a snapshot\n"
+              "-m NNN Capture when motion, motion sensitivity\n";
     return -1;
 }
 

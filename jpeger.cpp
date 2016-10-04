@@ -19,6 +19,7 @@
 #include <iostream>
 #include "jpeger.h"
 
+extern bool __alive;
 
 typedef struct
 {
@@ -34,7 +35,7 @@ static boolean  _empty_output_buffer(j_compress_ptr cinfo);
 static void     _term_destination(j_compress_ptr cinfo);
 static int      _jpeg_mem_size(j_compress_ptr cinfo);
 
-jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0)
+jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
 {
 }
 
@@ -47,16 +48,71 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
                             int quality, uint8_t** pjpeg)
 {
     if(_image==0)
-        _image = new uint8_t[(w+1)*(h+1)*3]; // this should be enough ?!?
+    {
+        _memsz = w * h * 2;
+        try{
+            _image = new uint8_t[_memsz]; // this should be enough ?!?
+        }catch(...)
+        {
+        }
+    }
     if(_image == 0)
     {
         std::cerr <<  "out of memory" << DERR();
+        __alive=false;
         return 0;
     }
     _imgsize =  _put_jpeg_yuv420p_memory(_image, isize, fmt420, w, h, quality, 0);
     *pjpeg = _image;
     return  _imgsize;
 }
+
+
+uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h, int imgsz,
+                           int quality, uint8_t** pjpeg)
+{
+
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
+    int row_stride;
+
+    memset(_image,255, _memsz);
+
+
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+
+    cinfo.image_width = w;
+    cinfo.image_height = h;
+    cinfo.input_components = 1;
+    cinfo.in_color_space = JCS_GRAYSCALE;
+    jpeg_set_defaults(&cinfo);
+
+    jpeg_set_colorspace(&cinfo, JCS_GRAYSCALE);
+    //cinfo.raw_data_in = TRUE;
+    cinfo.dct_method = JDCT_FASTEST;
+
+    jpeg_set_quality(&cinfo, 80, TRUE /* limit to baseline-JPEG values */);
+    _jpeg_mem_dest(&cinfo, _image, imgsz);
+    jpeg_start_compress(&cinfo, TRUE);
+    row_stride = w ;
+
+
+    while (cinfo.next_scanline < cinfo.image_height)
+    {
+        row_pointer[0] = (unsigned char*)&uint8buf[cinfo.next_scanline * row_stride];
+        (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    }
+
+    jpeg_finish_compress(&cinfo);
+    int jpeg_imgsz = _jpeg_mem_size(&cinfo);
+    *pjpeg = _image;
+    jpeg_destroy_compress(&cinfo);
+
+    return jpeg_imgsz;
+}
+
 
 int jpeger::_put_jpeg_yuv420p_memory(uint8_t *pdest,
                                      int imgsz,

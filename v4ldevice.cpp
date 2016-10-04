@@ -1,4 +1,4 @@
-/*
+/**
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,18 +25,19 @@
 #include "v4ldevice.h"
 
 #define VIDEO_BUFFS 2
-
+#define MOTION_SZ   32
 
 v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motion)
 {
     ::strcpy(_sdevice, device);
+    _curbuffer = 0;
     _xy[0]=x;
     _xy[1]=y;
     _fps = fps;
-    _motionindex = 0;
     _lasttime = time(0);
     _motion = motion;
-    _grid = 64;
+    _pmt = 0;
+    _moved = false;
 }
 
 v4ldevice::~v4ldevice()
@@ -61,21 +62,21 @@ bool v4ldevice::open()
     }
 
     struct v4l2_capability  caps = {0};
-	struct v4l2_format      frmt = {0};
-	struct v4l2_crop        crop = {0};
+    struct v4l2_format      frmt = {0};
+    struct v4l2_crop        crop = {0};
     struct v4l2_cropcap     cropcap = {0};
 
-	if (-1 == _ioctl(VIDIOC_QUERYCAP, &caps))
-	{
+    if (-1 == _ioctl(VIDIOC_QUERYCAP, &caps))
+    {
         std::cout << "_ioctl" << _sdevice << " " <<  errno  << "\n";
         return false;
-	}
+    }
 
-	if (!(caps.capabilities & V4L2_CAP_VIDEO_CAPTURE))
-	{
+    if (!(caps.capabilities & V4L2_CAP_VIDEO_CAPTURE))
+    {
         std::cout << "no video capture device" << _sdevice << " " <<  errno  << "\n";
         return false;
-	}
+    }
 
     if (!(caps.capabilities & V4L2_CAP_STREAMING))
     {
@@ -83,31 +84,31 @@ bool v4ldevice::open()
         return false;
     }
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (0 == _ioctl(VIDIOC_CROPCAP, &cropcap))
-	{
-		crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		crop.c = cropcap.defrect;
+    if (0 == _ioctl(VIDIOC_CROPCAP, &cropcap))
+    {
+        crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        crop.c = cropcap.defrect;
         _ioctl(VIDIOC_S_CROP, &crop);
     }
 
-	frmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	frmt.fmt.pix.width = _xy[0];
-	frmt.fmt.pix.height = _xy[1];
-	frmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
-	frmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-	if (-1 == _ioctl(VIDIOC_S_FMT, &frmt))
-	{
+    frmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    frmt.fmt.pix.width = _xy[0];
+    frmt.fmt.pix.height = _xy[1];
+    frmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+    frmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+    if (-1 == _ioctl(VIDIOC_S_FMT, &frmt))
+    {
         std::cout << "Unsupported format WxH" << _sdevice << " " <<  errno  << "\n";
-		return false;
+        return false;
     }
     // realign
     _xy[0] = frmt.fmt.pix.width;
     _xy[1] = frmt.fmt.pix.height;
-	if (frmt.fmt.pix.pixelformat != V4L2_PIX_FMT_YUV420)
-	{
-		std::cout << "libv4l cannot process YUV420 format. \n";
-		return false;
-	}
+    if (frmt.fmt.pix.pixelformat != V4L2_PIX_FMT_YUV420)
+    {
+        std::cout << "libv4l cannot process YUV420 format. \n";
+        return false;
+    }
 
     if (_fps>=0)
     {
@@ -123,11 +124,11 @@ bool v4ldevice::open()
         }
     }
     uint32_t wmin = frmt.fmt.pix.width * 2;
-	if (frmt.fmt.pix.bytesperline < wmin)
-		frmt.fmt.pix.bytesperline = wmin;
-	wmin = frmt.fmt.pix.bytesperline * frmt.fmt.pix.height;
-	if (frmt.fmt.pix.sizeimage < wmin)
-		frmt.fmt.pix.sizeimage = wmin;
+    if (frmt.fmt.pix.bytesperline < wmin)
+        frmt.fmt.pix.bytesperline = wmin;
+    wmin = frmt.fmt.pix.bytesperline * frmt.fmt.pix.height;
+    if (frmt.fmt.pix.sizeimage < wmin)
+        frmt.fmt.pix.sizeimage = wmin;
 
 
     uint32_t page_size  = getpagesize();
@@ -138,11 +139,11 @@ bool v4ldevice::open()
     _buffsize = buffer_size;
     //try mmap first
     req.count = VIDEO_BUFFS;
-	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	req.memory = V4L2_MEMORY_MMAP;
+    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    req.memory = V4L2_MEMORY_MMAP;
 
-	if (-1 == _ioctl(VIDIOC_REQBUFS, &req))
-	{
+    if (-1 == _ioctl(VIDIOC_REQBUFS, &req))
+    {
         std::cout << "libv4l does not support VIDIOC_REQBUFS(V4L2_MEMORY_MMAP) . \n";
 
         req.count = VIDEO_BUFFS;
@@ -190,36 +191,36 @@ bool v4ldevice::open()
     // continue with mmap
     if (req.count < 2)
     {
-		std::cout<< "buffer memory \n";
-		return false;
-	}
+        std::cout<< "buffer memory \n";
+        return false;
+    }
 
-	for (uint32_t i = 0; i < req.count; ++i)
-	{
-		struct v4l2_buffer buf = {0};
+    for (uint32_t i = 0; i < req.count; ++i)
+    {
+        struct v4l2_buffer buf = {0};
 
-		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		buf.memory = V4L2_MEMORY_MMAP;
-		buf.index = i;
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = i;
 
-		if (-1 == _ioctl(VIDIOC_QUERYBUF, &buf))
-		{
+        if (-1 == _ioctl(VIDIOC_QUERYBUF, &buf))
+        {
             std::cout<< "VIDIOC_QUERYBUF memory \n";
-			return false;
+            return false;
         }
-		_buffers[i].length = buf.length;
-		_buffsize = buf.length;
-		_buffers[i].start = v4l2_mmap(NULL, buf.length,
-                                        PROT_READ | PROT_WRITE ,
-                                        MAP_SHARED ,
-                                        _device,
-                                        buf.m.offset);
+        _buffers[i].length = buf.length;
+        _buffsize = buf.length;
+        _buffers[i].start = v4l2_mmap(NULL, buf.length,
+                                      PROT_READ | PROT_WRITE,
+                                      MAP_SHARED,
+                                      _device,
+                                      buf.m.offset);
         _buffers[i].mmap = V4L2_MEMORY_MMAP;
 
-		if (MAP_FAILED == _buffers[i].start)
-		{
+        if (MAP_FAILED == _buffers[i].start)
+        {
             std::cout<< "MAP_FAILED memory \n";
-			return false;
+            return false;
         }
 
         ::memset(&buf,0,sizeof(buf));
@@ -238,28 +239,30 @@ bool v4ldevice::open()
 
     if(_motion)
     {
-    	_grid = (_xy[0]-8) / 8;
-
-    	_motionsz = (_xy[0]+1)/_grid * (_xy[1]+1)/_grid * 3;
-    	_motionbufs[0] = new uint8_t[_motionsz];
-    	_motionbufs[1] = new uint8_t[_motionsz];
-    	memset(_motionbufs[0],0,_motionsz);
-    	memset(_motionbufs[1],0,_motionsz);
-
-    	if(_motionbufs[0] == 0 || _motionbufs[1] == 0)
-    	{
-        	std::cout<< "out of memory. Motion disabled! \n";
-		_motion=0;
-    	}
+        _pmt = new mmotion(_xy[0], _xy[1]);
+        if(_pmt)
+        {
+            _pmt->start_thread();
+        }
+        else
+        {
+            std::cout << "motion out memeory. motion is off \n";
+            _motion = 0;
+        }
     }
-    _curbuffer=0;
-	return true;
+     _curbuffer=0;
+    return true;
 }
-
 
 void v4ldevice::close()
 {
-    if(_device>0){
+    if(_pmt)
+    {
+        _pmt->stop_thread();
+        delete _pmt;
+    }
+    if(_device>0)
+    {
         for (int i = 0; i < MAX_BUFFERS; ++i)
         {
             if(_buffers[i].start)
@@ -278,18 +281,16 @@ void v4ldevice::close()
         ::v4l2_close(_device);
     }
     _device = 0;
-
-
 }
 
 int v4ldevice::_ioctl(int request, void* argp)
 {
-	int r = ::v4l2_ioctl(_device, request, argp);
-	while (-1 == r && EINTR == errno)
+    int r = ::v4l2_ioctl(_device, request, argp);
+    while (-1 == r && EINTR == errno)
     {
         ::usleep(1000);
     }
-	return r;
+    return r;
 }
 
 const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
@@ -302,7 +303,6 @@ const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
 
     FD_ZERO(&fds);
     FD_SET(_device, &fds);
-
     tv.tv_sec = 0;
     tv.tv_usec = 100000;
     int r = select(_device + 1, &fds, NULL, NULL, &tv);
@@ -335,7 +335,7 @@ const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
         for (int i = 0; i < VIDEO_BUFFS; ++i)
         {
             if (buf.m.userptr == (unsigned long)_buffers[i].start &&
-                buf.length == _buffers[i].length)
+                    buf.length == _buffers[i].length)
             {
                 break;
             }
@@ -353,14 +353,87 @@ const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
     }
 
     time_t cur = time(0);
-    if(_motion && cur -_lasttime > 1)
+    if(_motion)// && cur -_lasttime > 1)
     {
-	///  TODO
-	// enque to thread, due long motion algorithm
-
-        _motionindex=!_motionindex;
-        /// enque to thread for motion detection
+        _moved = _pmt->has_moved((uint8_t*)_buffers[_curbuffer].start);
     }
 
     return (const uint8_t*)_buffers[_curbuffer].start;
 }
+
+const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
+{
+    if(_motion)
+    {
+        w  = _pmt->getw();
+        h  = _pmt->geth();
+        sz = w * h;
+        return _pmt->motionbuf();
+    }
+    return 0;
+}
+
+
+mmotion::mmotion(int w, int h):_w(w),_h(h)
+{
+    _mw = MOTION_SZ;
+    _mh = _mw;  //sqared
+
+    size_t msz = (_mw) * (_mh);
+    _motionbufs[0] = new uint8_t[msz];
+    _motionbufs[1] = new uint8_t[msz];
+    _motionbufs[2] = new uint8_t[msz];
+
+    memset(_motionbufs[0],0,msz);
+    memset(_motionbufs[1],0,msz);
+    memset(_motionbufs[2],0,msz);
+    _motionindex = 0;
+    _motionsz = msz;
+}
+
+mmotion::~mmotion()
+{
+    delete []_motionbufs[0];
+    delete []_motionbufs[1];
+    delete []_motionbufs[2];
+}
+
+
+void mmotion::thread_main()
+{
+
+}
+
+
+bool mmotion::has_moved(uint8_t* fmt420)
+{
+    register uint8_t *base_py = fmt420;
+    int               dx = _w /MOTION_SZ;
+    int               dy = _h /MOTION_SZ;
+    uint8_t*          prow = _motionbufs[2];
+    uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
+    uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
+    int               pixels=0;
+
+    for (int y= 0; y <MOTION_SZ; y++)
+    {
+        for (int x = 0; x < MOTION_SZ; x++)
+        {
+            uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent frame
+            Y/=4; //reduce noise
+            Y*=4;
+            *(prowcur + (y * MOTION_SZ)+x) = Y;
+
+
+            uint8_t YP = *(prowprev+(y  * MOTION_SZ) + (x));
+            int diff = Y - YP; if(diff<0)diff=0;
+            *(prow + (y * MOTION_SZ)+x) = (uint8_t)diff;
+
+            ++pixels;
+        }
+    }
+    assert(pixels <= _motionsz);
+    _motionindex =! _motionindex;
+    return true;
+}
+

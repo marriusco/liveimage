@@ -18,7 +18,9 @@
 */
 
 #include <iostream>
+#include <fcntl.h>
 #include "sockserver.h"
+#include "outfilefmt.h"
 
 extern bool __alive;
 
@@ -35,22 +37,33 @@ sockserver::~sockserver()
 
 bool sockserver::listen()
 {
+    int ntry = 0;
+AGAIN:
+
     if(_s.create(_port, SO_REUSEADDR, 0)>0)
     {
-//        fcntl(_s.socket(), F_SETFD, FD_CLOEXEC);
+        fcntl(_s.socket(), F_SETFD, FD_CLOEXEC);
         _s.set_blocking(0);
         if(_s.listen(4)!=0)
         {
-            std::cout <<"socket canntlisten. wait abit and run again\n";
-            __alive=false;
+            std::cout <<"socket can't listen. Trying "<< (ntry+1) << " out of 10 " << DERR();
+
             _s.destroy();
+            sleep(3);
+            if(++ntry<10)
+                goto AGAIN;
             return false;
         }
+        std::cout << "listening \n";
         return true;
     }
-    std::cout <<"socket canntlisten. wait abit and run again\n";
-    __alive=false;
+    std::cout <<"create socket. Trying "<< (ntry+1) << " out of 10 " << DERR();
     _s.destroy();
+    sleep(2);
+    if(++ntry<10)
+        goto AGAIN;
+    __alive=false;
+    sleep(3);
     return false;
 }
 
@@ -67,8 +80,7 @@ bool sockserver::spin()
 {
     fd_set  rd;
     int     ndfs = _s.socket();// _s.sock()+1;
-    timeval tv {0,1000};
-
+    timeval tv {0,10000};
 
     FD_ZERO(&rd);
     FD_SET(_s.socket(), &rd);
@@ -84,6 +96,7 @@ bool sockserver::spin()
     }
     int is = ::select(ndfs+1, &rd, 0, 0, &tv);
     if(is ==-1) {
+        std::cout << "socket select() " << DERR();
         __alive=false;
         return false;
     }
@@ -92,9 +105,11 @@ bool sockserver::spin()
 
         if(FD_ISSET(_s.socket(), &rd))
         {
-            tcp_cli_sock* cs = new tcp_cli_sock();
+            imgclient* cs = new imgclient();
             if(_s.accept(*cs)>0)
             {
+                cs->set_blocking(0);
+
                 _clis.push_back(cs);
             }
         }
@@ -105,7 +120,7 @@ bool sockserver::spin()
                 continue;
             if(FD_ISSET(s->socket(), &rd))
             {
-                char req[256] = {0};
+                char req[300] = {0};
 
                 int rt = s->receive(req,255);
                 if(rt==0)//con closed
@@ -114,7 +129,19 @@ bool sockserver::spin()
                     _dirty = true;
                 }
                 if(rt>0)
+                {
+                    if(strstr(req,"GET") &&  strstr(req,"/?live"))
+                    {
+                        s->_live = true;
+                    }
+                    else if(strstr(req,"GET") &&  strstr(req,"/?motion"))
+                    {
+                        s->_live = false;
+                    }
+                    else
+                        s->_live = false;
                     std::cout << req << "\n";
+                }
             }
         }
     }
@@ -152,6 +179,7 @@ bool sockserver::snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
 
     for(auto& s : _clis)
     {
+
         rv = s->sendall(hdr,szh,100);
         rv = s->sendall(jpg,sz,1000);
 
@@ -170,8 +198,8 @@ void sockserver::_clean()
     if(_dirty)
     {
 AGAIN:
-
-        for(std::vector<tcp_cli_sock*>::iterator s=_clis.begin();s!=_clis.end();++s)
+        size_t elems = _clis.size();
+        for(std::vector<imgclient*>::iterator s=_clis.begin();s!=_clis.end();++s)
         {
             if((*s)->socket()<=0)
             {
@@ -187,7 +215,7 @@ AGAIN:
 }
 
 
-bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
+bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, bool motionmap)
 {
     char buffer[512] = {0};
     struct timeval timestamp;
@@ -198,7 +226,10 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
 
     for(auto& s : _clis)
     {
-        if(!_headered)
+        if(motionmap!=s->_live)
+            continue;
+
+        if(!s->_headered)
         {
             sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
             "HTTP/1.0 200 OK\r\n"
@@ -210,7 +241,7 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
                     "--thesupposeduniqueb\r\n");
 
             rv = s->sendall(buffer,strlen(buffer),100);
-            _headered=true;
+            s->_headered=true;
             usleep(10000);
         }
 
@@ -219,10 +250,23 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
             "X-Timestamp: %d.%06d\r\n" \
             "\r\n", ifmt, sz, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
         rv = s->sendall(buffer,strlen(buffer),100);
+        if(rv ==0)
+        {
+            s->destroy();
+            _dirty=true;
+            std::cout << "socket closed during sent \n";
+            goto DONE;
+        }
         usleep(100);
-        printf("< %s", buffer);
-        printf("< %d bytes", sz);
+        std::cout << buffer << "(" << sz << ")\n";
         rv = s->sendall(jpg,sz,1000);
+        if(rv ==0)
+        {
+            s->destroy();
+            _dirty=true;
+            std::cout << "socket closed during sent \n";
+            goto DONE;
+        }
         usleep(100);
         sprintf(buffer, "\r\n--thesupposeduniqueb\r\nContent-type: image/%s\r\n", ifmt);
         rv = s->sendall(buffer,strlen(buffer),100);
@@ -231,8 +275,11 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
             s->destroy();
             _dirty=true;
             std::cout << "socket closed during sent \n";
+            goto DONE;
         }
     }
+DONE:
+    _clean();
     return rv>0;
 }
 

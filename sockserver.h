@@ -24,6 +24,15 @@
 #include <vector>
 
 
+class imgclient : public tcp_cli_sock
+{
+public:
+    imgclient():_live(true),_headered(false){}
+    ~imgclient(){}
+    bool _live;
+    bool _headered;
+};
+
 
 class sockserver
 {
@@ -34,16 +43,17 @@ public:
     bool listen();
     void close();
     bool spin();
+    int  socket() {return _s.socket();}
     bool has_clients();
     bool snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt);
-    bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt);
+    bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, bool motionmap);
 private:
     void _clean();
 
     tcp_srv_sock _s;
     int      _port;
     string   _proto;
-    std::vector<tcp_cli_sock*> _clis;
+    std::vector<imgclient*> _clis;
     bool _dirty;
     bool _headered;
 };

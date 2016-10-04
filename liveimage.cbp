@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-i jpg -s 8080 -d /dev/video0  -f 20  -n 40 -o ooo -m 100" />
+				<Option parameters="-i jpg -s 8080 -d /dev/video0  -f 20  -n 40  -m 100" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -31,13 +31,14 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-std=c++11" />
+			<Add option="-std=c++0x" />
 			<Add option="-fexceptions" />
 		</Compiler>
 		<Linker>
 			<Add library="v4l2" />
 			<Add library="jpeg" />
 			<Add library="png" />
+			<Add library="pthread" />
 		</Linker>
 		<Unit filename="bin/Release/demo.sh" />
 		<Unit filename="image.html" />
@@ -45,6 +46,7 @@
 		<Unit filename="jpeger.cpp" />
 		<Unit filename="jpeger.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="motion.html" />
 		<Unit filename="os.h" />
 		<Unit filename="outfilefmt.h" />
 		<Unit filename="pnger.cpp" />

@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <vector>
+#include "os.h"
 
 #define MAX_BUFFERS 4
 
@@ -51,6 +52,27 @@ struct videobuffer {
     int      mmap;
 };
 
+class v4ldevice;
+class mmotion : public OsThread
+{
+public:
+    mmotion(int w, int h);
+    ~mmotion();
+    void thread_main();
+    bool has_moved(uint8_t* p);
+    int  getw()const{return _mw;}
+    int  geth()const{return _mh;}
+    uint8_t*  motionbuf()const{return _motionbufs[2];}
+private:
+    int       _w;
+    int       _h;
+    int       _mw;
+    int       _mh;
+    uint8_t*  _motionbufs[3];
+    int       _motionindex;
+    uint32_t  _motionsz;
+    mutex     _m;
+};
 
 
 class v4ldevice
@@ -62,7 +84,9 @@ public:
     bool open();
     void close();
     const uint8_t* acquire(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
+    const uint8_t* getm(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     int _proc_buff(const void* p, struct timeval& t);
+
 private:
     int _ioctl(int request, void* argp);
 
@@ -75,12 +99,15 @@ private:
     timeval _curts;
     uint32_t _buffsize;
     struct   videobuffer  _buffers[MAX_BUFFERS];
-    uint8_t*  _motionbufs[2];
-    int       _motionindex;
-    uint32_t  _motionsz;
     time_t    _lasttime;
     int       _motion;
-    int       _grid;
+    mmotion*  _pmt;
+    bool      _moved;
 };
+
+
+
+
+
 
 #endif // V4LDEVICE_H
