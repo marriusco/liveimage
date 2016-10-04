@@ -4,7 +4,9 @@
   </head>
   <body bgcolor="#E6E6FA">
     <center>
-      <img src="http://127.0.0.1:8080/?live" /><hr />
+<?php
+      echo "<img width='320' src='http://{$_SERVER['HTTP_HOST']}:8080/?motion' /><hr />";
+?>
     </center>
   </body>
 </html>

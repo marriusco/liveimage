@@ -39,7 +39,8 @@ bool sockserver::listen()
 {
     int ntry = 0;
 AGAIN:
-
+    if(__alive==false)
+       return false;
     if(_s.create(_port, SO_REUSEADDR, 0)>0)
     {
         fcntl(_s.socket(), F_SETFD, FD_CLOEXEC);
@@ -109,6 +110,8 @@ bool sockserver::spin()
             if(_s.accept(*cs)>0)
             {
                 cs->set_blocking(0);
+                cs->_live=-1;
+	        std::cout <<"new connection \n";
 
                 _clis.push_back(cs);
             }
@@ -122,25 +125,29 @@ bool sockserver::spin()
             {
                 char req[300] = {0};
 
-                int rt = s->receive(req,255);
+                int rt = s->receive(req,299);
                 if(rt==0)//con closed
                 {
+		    std::cout << "client closed connection \n";
                     s->destroy();
                     _dirty = true;
                 }
-                if(rt>0)
+                if(rt > 0)
                 {
-                    if(strstr(req,"GET") &&  strstr(req,"/?live"))
-                    {
-                        s->_live = true;
+		    if(s->_live == -1 )
+		    {
+                    	if( strstr(req, "/?live"))
+		    	{
+				std::cout << "setting " << s << " to live stream \n";
+                        	s->_live = 1;
+                    	}
+                    	else if( strstr(req, "/?motion"))
+                    	{
+				std::cout << "setting " << s << " to motion stream \n";
+                        	s->_live = 0;
+                    	}
                     }
-                    else if(strstr(req,"GET") &&  strstr(req,"/?motion"))
-                    {
-                        s->_live = false;
-                    }
-                    else
-                        s->_live = false;
-                    std::cout << req << "\n";
+                    std::cout << s << "," << s->_live  << ": " << req << "\n";
                 }
             }
         }
@@ -215,7 +222,7 @@ AGAIN:
 }
 
 
-bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, bool motionmap)
+bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap)
 {
     char buffer[512] = {0};
     struct timeval timestamp;
@@ -226,7 +233,7 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, b
 
     for(auto& s : _clis)
     {
-        if(motionmap!=s->_live)
+        if(motionmap != s->_live)
             continue;
 
         if(!s->_headered)
@@ -258,7 +265,7 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, b
             goto DONE;
         }
         usleep(100);
-        std::cout << buffer << "(" << sz << ")\n";
+        /// std::cout << buffer << "(" << sz << ")\n";
         rv = s->sendall(jpg,sz,1000);
         if(rv ==0)
         {

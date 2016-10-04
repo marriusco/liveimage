@@ -27,9 +27,9 @@
 class imgclient : public tcp_cli_sock
 {
 public:
-    imgclient():_live(true),_headered(false){}
+    imgclient():_live(-1),_headered(false){}
     ~imgclient(){}
-    bool _live;
+    int _live;
     bool _headered;
 };
 
@@ -46,7 +46,7 @@ public:
     int  socket() {return _s.socket();}
     bool has_clients();
     bool snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt);
-    bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, bool motionmap);
+    bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap);
 private:
     void _clean();
 

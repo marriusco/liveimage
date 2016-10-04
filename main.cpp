@@ -214,7 +214,7 @@ int main(int nargs, char* vargs[])
                             fclose(pf);
                             if(signal)
                                 kill(signal, SIGUSR1);
-                            std::cout << "saving: " << filename << "\n";
+                            // std::cout << "saving: " << filename << "\n";
                         }
                         sigcapt=0;
                         __capture=false;
@@ -223,14 +223,14 @@ int main(int nargs, char* vargs[])
                     }
                     if(ps && ps->has_clients())
                     {
-                        ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", true);
+                        ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
                         int w, h;
                         size_t sz;
                         const uint8_t* mot = dev.getm(w, h, sz);
                         if(mot)
                         {
                             uint32_t jpgsz = ffmt->convertBW(mot, w, h, sz, quality, &pjpg);
-                            ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", false);
+                            ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 0);
                             /*
                             FILE* pf = fopen("motion.jpg","wb");
                             if(pf)
