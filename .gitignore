@@ -1,8 +1,8 @@
-./.git/
-./CMakeCache.txt
-./CMakeFiles/
-./Makefile
-./cmake_install.cmake
-./liveimage
-./filename.jpg
+.git/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+liveimage
+filename.jpg
 
