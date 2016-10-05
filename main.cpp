@@ -153,7 +153,7 @@ int main(int nargs, char* vargs[])
     outfilefmt* ffmt = 0;
     int         w,h;
     size_t      sz ;
-
+  
     if(format.find("jpg")!=string::npos)
     {
         ffmt = new jpeger(quality);
@@ -189,8 +189,11 @@ int main(int nargs, char* vargs[])
         const uint8_t*  video420;
         bool            capture=false;
         bool            shotsignal=false;
+		char 			info[64];
 
-        while(__alive  && 0 == ::usleep(1000))
+		if(motion)
+			filesaveframes=0;
+        while(__alive  && 0 == ::usleep(4000))
         {
             if(ps)ps->spin();
             shotsignal = sigcapt && __capture; //signal by SIGUSR1
@@ -202,10 +205,16 @@ int main(int nargs, char* vargs[])
             video420 = dev.acquire(w, h, sz);
             if(video420)
             {
+                int movepix = dev.movement();
+				if(movepix){
+					std::cout<<"movement pixels = " << movepix << "\n";
+					sprintf(info, "motion pix = %d", movepix);		
+					ps->stream_text(info);
+				}
                 uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
                 if(jpgsz )
                 {
-                    if((sigcapt || ct % filesaveframes==0)&& !filename.empty())
+                    if((sigcapt || (filesaveframes>0 && ct % filesaveframes==0 ) || movepix) && !filename.empty())
                     {
                         FILE* pf = fopen(filename.c_str(),"wb");
                         if(pf)
@@ -215,7 +224,7 @@ int main(int nargs, char* vargs[])
                             if(nsignal){
                                 ::kill(nsignal, SIGUSR2);
 	                        std::cout << "SIGUSR2: " << nsignal << "\n";
-			     }
+			     		}
                              std::cout << "saving: " << filename << "\n";
                         }
                         sigcapt=0;
@@ -233,18 +242,6 @@ int main(int nargs, char* vargs[])
                         {
                             uint32_t jpgsz = ffmt->convertBW(mot, w, h, sz, quality, &pjpg);
                             ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 0);
-                            /*
-                            FILE* pf = fopen("motion.jpg","wb");
-                            if(pf)
-                            {
-                                fwrite(pjpg,1,jpgsz,pf);
-                                fclose(pf);
-                                if(signal)
-                                    kill(signal, SIGUSR1);
-                                std::cout << "saving: " << filename << "\n";
-                            }
-                            */
-
                         }
                     }
                 }

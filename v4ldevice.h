@@ -59,7 +59,7 @@ public:
     mmotion(int w, int h);
     ~mmotion();
     void thread_main();
-    bool has_moved(uint8_t* p);
+    int has_moved(uint8_t* p);
     int  getw()const{return _mw;}
     int  geth()const{return _mh;}
     uint8_t*  motionbuf()const{return _motionbufs[2];}
@@ -72,6 +72,7 @@ private:
     int       _motionindex;
     uint32_t  _motionsz;
     mutex     _m;
+    int       _moves;
 };
 
 
@@ -86,7 +87,7 @@ public:
     const uint8_t* acquire(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     const uint8_t* getm(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     int _proc_buff(const void* p, struct timeval& t);
-
+    int movement()const{return _moved;}
 private:
     int _ioctl(int request, void* argp);
 
@@ -102,12 +103,7 @@ private:
     time_t    _lasttime;
     int       _motion;
     mmotion*  _pmt;
-    bool      _moved;
+    int       _moved;
 };
-
-
-
-
-
 
 #endif // V4LDEVICE_H

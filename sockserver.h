@@ -31,6 +31,7 @@ public:
     ~imgclient(){}
     int _live;
     bool _headered;
+    std::string  _message;
 };
 
 
@@ -47,6 +48,7 @@ public:
     bool has_clients();
     bool snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt);
     bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap);
+    bool stream_text( const char* text);
 private:
     void _clean();
 

@@ -25,7 +25,7 @@
 #include "v4ldevice.h"
 
 #define VIDEO_BUFFS 2
-#define MOTION_SZ   32
+#define MOTION_SZ   64
 
 v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motion)
 {
@@ -37,7 +37,7 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motion)
     _lasttime = time(0);
     _motion = motion;
     _pmt = 0;
-    _moved = false;
+    _moved = 0;
 }
 
 v4ldevice::~v4ldevice()
@@ -377,7 +377,7 @@ const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
 mmotion::mmotion(int w, int h):_w(w),_h(h)
 {
     _mw = MOTION_SZ;
-    _mh = _mw;  //sqared
+    _mh = (_mw * _h) / _w; 
 
     size_t msz = (_mw) * (_mh);
     _motionbufs[0] = new uint8_t[msz];
@@ -389,6 +389,7 @@ mmotion::mmotion(int w, int h):_w(w),_h(h)
     memset(_motionbufs[2],0,msz);
     _motionindex = 0;
     _motionsz = msz;
+    _moves=0;
 }
 
 mmotion::~mmotion()
@@ -405,35 +406,39 @@ void mmotion::thread_main()
 }
 
 
-bool mmotion::has_moved(uint8_t* fmt420)
+int mmotion::has_moved(uint8_t* fmt420)
 {
     register uint8_t *base_py = fmt420;
-    int               dx = _w /MOTION_SZ;
-    int               dy = _h /MOTION_SZ;
+    int               dx = _w / _mw;
+    int               dy = _h / _mh;
     uint8_t*          prow = _motionbufs[2];
     uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
     uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
     int               pixels=0;
 
-    for (int y= 0; y <MOTION_SZ; y++)
+    _moves = 0;
+    for (int y= 0; y <_mh; y++)
     {
-        for (int x = 0; x < MOTION_SZ; x++)
+        for (int x = 0; x < _mw; x++)
         {
             uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent frame
             Y/=4; //reduce noise
             Y*=4;
-            *(prowcur + (y * MOTION_SZ)+x) = Y;
-
-
-            uint8_t YP = *(prowprev+(y  * MOTION_SZ) + (x));
+            *(prowcur + (y * _mw)+x) = Y;
+            uint8_t YP = *(prowprev+(y  * _mw) + (x));
             int diff = Y - YP; if(diff<0)diff=0;
-            *(prow + (y * MOTION_SZ)+x) = (uint8_t)diff;
-
+            if(diff>16){
+		_moves++;
+               diff=255;
+            }
+	    else
+               diff=0;
+            *(prow + (y * _mw)+x) = (uint8_t)diff;
             ++pixels;
         }
     }
     assert(pixels <= _motionsz);
     _motionindex =! _motionindex;
-    return true;
+    return _moves;
 }
 

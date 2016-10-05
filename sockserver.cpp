@@ -128,24 +128,29 @@ bool sockserver::spin()
                 int rt = s->receive(req,299);
                 if(rt==0)//con closed
                 {
-		    std::cout << "client closed connection \n";
+				    std::cout << "client closed connection \n";
                     s->destroy();
                     _dirty = true;
                 }
                 if(rt > 0)
                 {
-		    if(s->_live == -1 )
-		    {
+					if(s->_live == -1 )
+					{
                     	if( strstr(req, "/?live"))
-		    	{
-				std::cout << "setting " << s << " to live stream \n";
+		    			{
+							std::cout << "setting " << s << " to live stream \n";
                         	s->_live = 1;
-                    	}
+               			}
                     	else if( strstr(req, "/?motion"))
-                    	{
-				std::cout << "setting " << s << " to motion stream \n";
+               			{
+							std::cout << "setting " << s << " to motion stream \n";
                         	s->_live = 0;
-                    	}
+               			}
+                    	else if( strstr(req, "/?info"))
+               			{
+							std::cout << "setting " << s << " to text \n";
+                        	s->_live = 2;
+               			}
                     }
                     std::cout << s << "," << s->_live  << ": " << req << "\n";
                 }
@@ -221,10 +226,77 @@ AGAIN:
 
 }
 
+bool sockserver::stream_text(const char* text)
+{
+	char buffer[256] = {0};    
+	struct timeval timestamp;
+    struct timezone tz = {5,0};
+    int rv = 0;
+
+    gettimeofday(&timestamp, &tz);
+    for(auto& s : _clis)
+    {
+        if(2 != s->_live)
+            continue;
+
+        if(!s->_headered)
+        {
+            sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
+            "HTTP/1.0 200 OK\r\n"
+            "Connection: close\r\n"
+            "Server: v4l2net/1.0\r\n"
+            "Cache-Control: no-cache\r\n"
+            "Content-Type: multipart/x-mixed-replace;boundary=thesupposedunixxxx\r\n" \
+                    "\r\n" \
+                    "--thesupposedunixxxx\r\n");
+
+            rv = s->sendall(buffer,strlen(buffer),100);
+            s->_headered=true;
+            usleep(1000);
+        }
+
+        sprintf(buffer, "Content-Type: text/html\r\n" \
+            "Content-Length: %d\r\n" \
+            "X-Timestamp: %d.%06d\r\n" \
+            "\r\n", strlen(text), (int)timestamp.tv_sec, (int)timestamp.tv_usec);
+        rv = s->sendall(buffer,strlen(buffer),100);
+        if(rv ==0)
+        {
+            s->destroy();
+            _dirty=true;
+            std::cout << "socket closed during sent \n";
+            goto DONE;
+        }
+        /// std::cout << buffer << "(" << sz << ")\n";
+        rv = s->sendall(text,strlen(text),1000);
+        if(rv ==0)
+        {
+            s->destroy();
+            _dirty=true;
+            std::cout << "socket closed during sent \n";
+            goto DONE;
+        }
+        sprintf(buffer, "\r\n--thesupposedunixxx\r\nContent-Type: text/html\r\n");
+        rv = s->sendall(buffer,strlen(buffer),100);
+        if(rv ==0)
+        {
+            s->destroy();
+            _dirty=true;
+            std::cout << "socket closed during sent \n";
+            goto DONE;
+        }
+    }
+DONE:
+    _clean();
+    return rv>0;
+
+
+}
+
 
 bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap)
 {
-    char buffer[512] = {0};
+    char buffer[256] = {0};
     struct timeval timestamp;
     struct timezone tz = {5,0};
     int rv = 0;
@@ -289,4 +361,5 @@ DONE:
     _clean();
     return rv>0;
 }
+
 
