@@ -94,9 +94,11 @@ kill -9 (pidof liveimage)
 
 ```
 
+### Tested
+
+  * R-PI 3
+  * Nano PI Neo
+  * C. H. I. P., crashes, CHIP became unresponsive. liveimage and php files are corrupted.
+  
 
 
-
-
-Marius C. Developed on the Last week of September, 2016
-Credits: jpegstreamer, motion, imagemagic, v4l2grab 
