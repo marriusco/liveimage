@@ -33,7 +33,7 @@
 #include "pnger.h"
 
 /*
-sudo apt-get install libpng-dev
+sudo apt-get install libpng-dev libv4l-dev libjpeg-dev
 sudo apt-get install libv4l-dev
 sudo apt-get install libjpeg-dev
 */
@@ -130,7 +130,7 @@ int main(int nargs, char* vargs[])
     int         quality=90;
     int         width=640;
     int         height=480;
-    int         fps = 30;
+    int         fps = 15;
     string      filename="";
     int         nsignal = 0;
     int         frameperiod = 0;
@@ -185,7 +185,7 @@ int main(int nargs, char* vargs[])
             case 't':  ///  time period between captures in ms
                 frameperiod = ::atoi(vargs[k]);
                 break;
-            case 'T':  ///  time period between captures in ms
+            case 'T':  ///  time period between captures in s
                 frameperiod = ::atoi(vargs[k]) * 1000;
                 break;
             case 'i':
@@ -205,6 +205,10 @@ int main(int nargs, char* vargs[])
     outfilefmt* ffmt = 0;
     int         w,h;
     size_t      sz ;
+
+    float ffps = 1000.0f / (float)frameperiod;
+    if(ffps < 1.0)fps=1;
+    else fps = int(ffps);
 
     if(format.find("jpg")!=string::npos)
     {
@@ -325,6 +329,7 @@ int main(int nargs, char* vargs[])
 				else{
                     movepix = 0;
 				}
+				tnow = time(0);
                 uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
                 if(jpgsz )
                 {
@@ -351,7 +356,7 @@ int main(int nargs, char* vargs[])
                             }
                             std::cout << "saving: " << fname << "\n";
 
-                            tnow = time(0);
+
                             if(tnow - lastsave > 2)//2 seconds
                             {
                                 lastsave = tnow;
@@ -368,7 +373,7 @@ int main(int nargs, char* vargs[])
                         if(--oneshot==1) // one shot
                             break;
                     }
-                    if(ps && ps->has_clients())
+                    if(ps && ps->has_clients() && periodexpired)
                     {
                         ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
                         int w, h;
