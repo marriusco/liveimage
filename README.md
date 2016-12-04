@@ -102,5 +102,22 @@ kill -9 (pidof liveimage)
     * crashes, CHIP became unresponsive. liveimage and php files are corrupted.
     * After I disable removed lightdm/gdm, and with a time frame at <15 fps (100ms) works fine
   
+```
+./liveimage
+YUYV 4:2:2
+RGB3
+BGR3
+YU12
+YV12
+FPS: recalculated15
+/dev/video0 opened
+listening 
+Current image:113, Roll up at:1
+movement pixels = 21
+movement pixels = 21
+movement pixels = 20
+movement pixels = 20 << HANG HERE. CHIP is off. power  consumption is 0.04A. Needs reboot
 
+
+```
 
