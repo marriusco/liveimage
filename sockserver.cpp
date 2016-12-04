@@ -111,7 +111,7 @@ bool sockserver::spin()
             {
                 cs->set_blocking(0);
                 cs->_live=-1;
-	        std::cout <<"new connection \n";
+                std::cout <<"new connection \n";
 
                 _clis.push_back(cs);
             }
@@ -228,7 +228,7 @@ AGAIN:
 
 bool sockserver::stream_text(const char* text)
 {
-	char buffer[256] = {0};    
+	char buffer[256] = {0};
 	struct timeval timestamp;
     struct timezone tz = {5,0};
     int rv = 0;

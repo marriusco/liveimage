@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-i jpg -s 8080 -d /dev/video0  -f 20  -n 40  -m 100" />
+				<Option parameters="-i jpg -s 8080 -d /dev/video0 -T 2   -m 100,400 -o img-%05d" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>

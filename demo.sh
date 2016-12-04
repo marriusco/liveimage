@@ -1,14 +1,18 @@
 #!/bin/bash
 
+[[ ! -d "/data/snaps/" ]] && mkdir -p /data/snaps
+chown cocam:cocam /data/snaps
+chmod 775 /data/snaps
+
 echo running this bash pid:$$
-function ex
+function exfoo
 {
-    echo "file was saved"
 }
 
-trap ex SIGUSR2
 
-./liveimage -d /dev/video0 -o filename -s 8080 -s 8080 -m 100 -g $$ &
+trap exfoo SIGUSR2
+
+./liveimage -d /dev/video0 -o /data/snaps/img-06d% -s 8080 -m 20,300 -T 3 -g $$ &
 
 while [[ 1 ]]; do
     sleep 1

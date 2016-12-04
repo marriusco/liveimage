@@ -27,7 +27,7 @@
 #define VIDEO_BUFFS 2
 #define MOTION_SZ   64
 
-v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motion)
+v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi)
 {
     ::strcpy(_sdevice, device);
     _curbuffer = 0;
@@ -35,7 +35,8 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motion)
     _xy[1]=y;
     _fps = fps;
     _lasttime = time(0);
-    _motion = motion;
+    _motionlow = motionlow;
+    _motionhi = motionhi;
     _pmt = 0;
     _moved = 0;
 }
@@ -65,6 +66,8 @@ bool v4ldevice::open()
     struct v4l2_format      frmt = {0};
     struct v4l2_crop        crop = {0};
     struct v4l2_cropcap     cropcap = {0};
+    struct v4l2_fmtdesc     fmtdesc;
+
 
     if (-1 == _ioctl(VIDIOC_QUERYCAP, &caps))
     {
@@ -89,6 +92,14 @@ bool v4ldevice::open()
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         crop.c = cropcap.defrect;
         _ioctl(VIDIOC_S_CROP, &crop);
+    }
+
+    ::memset(&fmtdesc,0,sizeof(fmtdesc));
+    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    while (_ioctl(VIDIOC_ENUM_FMT,&fmtdesc) == 0)
+    {
+        ::printf("%s\n", fmtdesc.description);
+        fmtdesc.index++;
     }
 
     frmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -237,7 +248,7 @@ bool v4ldevice::open()
     if (-1 == _ioctl(VIDIOC_STREAMON, &type))
         return false;
 
-    if(_motion)
+    if(_motionhi)
     {
         _pmt = new mmotion(_xy[0], _xy[1]);
         if(_pmt)
@@ -247,7 +258,7 @@ bool v4ldevice::open()
         else
         {
             std::cout << "motion out memeory. motion is off \n";
-            _motion = 0;
+            _motionhi = 0;
         }
     }
      _curbuffer=0;
@@ -293,7 +304,7 @@ int v4ldevice::_ioctl(int request, void* argp)
     return r;
 }
 
-const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
+const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz)
 {
     fd_set fds;
     struct timeval tv;
@@ -353,7 +364,7 @@ const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
     }
 
     time_t cur = time(0);
-    if(_motion)// && cur -_lasttime > 1)
+    if(_motionhi)// && cur -_lasttime > 1)
     {
         _moved = _pmt->has_moved((uint8_t*)_buffers[_curbuffer].start);
     }
@@ -363,7 +374,7 @@ const uint8_t* v4ldevice::acquire(int& w, int& h, size_t& sz)
 
 const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
 {
-    if(_motion)
+    if(_motionhi)
     {
         w  = _pmt->getw();
         h  = _pmt->geth();
@@ -377,7 +388,7 @@ const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
 mmotion::mmotion(int w, int h):_w(w),_h(h)
 {
     _mw = MOTION_SZ;
-    _mh = (_mw * _h) / _w; 
+    _mh = (_mw * _h) / _w;
 
     size_t msz = (_mw) * (_mh);
     _motionbufs[0] = new uint8_t[msz];
