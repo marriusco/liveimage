@@ -98,7 +98,9 @@ kill -9 (pidof liveimage)
 
   * R-PI 3
   * Nano PI Neo
-  * C. H. I. P., crashes, CHIP became unresponsive. liveimage and php files are corrupted.
+  * C. H. I. P., 
+    * crashes, CHIP became unresponsive. liveimage and php files are corrupted.
+    * After I disable removed lightdm/gdm, and with a time frame at <15 fps (100ms) works fine
   
 
 
