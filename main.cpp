@@ -129,6 +129,7 @@ int main(int nargs, char* vargs[])
     int         motiona=0;
     int         motionb=0;
     int         port=0;
+    int         motionnoise=4;
     int         quality=90;
     int         width=640;
     int         height=480;
@@ -175,6 +176,13 @@ int main(int nargs, char* vargs[])
                 int two = sscanf(vargs[k],"%d,%d", &motiona, &motionb);
                 if(two != 2 || motiona>=motionb)
                     return _usage();
+            }
+            break;
+            case 'n':
+            {
+                motionnoise = atoi(vargs[k]);
+                if(motionnoise<1)motionnoise=1;
+                else if (motionnoise>32)motionnoise=32; 
             }
             break;
             case 'z':
@@ -225,7 +233,7 @@ int main(int nargs, char* vargs[])
             filename += ".png";
     }
 
-    v4ldevice   dev(device.c_str(), width, height, fps, motiona, motionb);
+    v4ldevice   dev(device.c_str(), width, height, fps, motiona, motionb, motionnoise);
     if(dev.open())
     {
         std::cout << device << " opened\n";
@@ -332,7 +340,7 @@ int main(int nargs, char* vargs[])
                 int movepix = dev.movement();
                 if(movepix >= motiona && movepix <= motionb)
                 {
-                    std::cout<<"movement pixels = " << movepix << "\n";
+		    std::cout << "move pix=" << movepix << "\n";
                 }
                 else
                 {
@@ -390,7 +398,7 @@ int main(int nargs, char* vargs[])
                     }
                     if(ps && ps->has_clients() && periodexpired)
                     {
-
+			printf("streaming \n");
                         ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
                         int w, h;
                         size_t sz;
@@ -429,7 +437,8 @@ static int _usage()
               "-z WxH Image width and height. Could be adjusted. Default 640x480\n"
               "-t NNN frame period in milliseconds\n"
               "-T NNN frame period in seconds. second option takes priority if t and T are used\n"
-              "-m N,M Capture when motion pixels is in between N and M\n";
+              "-m N,M Capture when motion pixels is in between N and M\n"
+              "-n N noise reduction 2 4 5 6 7 8\n";
     return -1;
 }
 

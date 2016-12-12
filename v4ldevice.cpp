@@ -27,7 +27,7 @@
 #define VIDEO_BUFFS 2
 #define MOTION_SZ   64
 
-v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi)
+v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi, int nr)
 {
     ::strcpy(_sdevice, device);
     _curbuffer = 0;
@@ -39,6 +39,7 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, i
     _motionhi = motionhi;
     _pmt = 0;
     _moved = 0;
+    _nr = nr;
 }
 
 v4ldevice::~v4ldevice()
@@ -252,7 +253,7 @@ bool v4ldevice::open()
 
     if(_motionhi)
     {
-        _pmt = new mmotion(_xy[0], _xy[1]);
+        _pmt = new mmotion(_xy[0], _xy[1], _nr);
         if(_pmt)
         {
             _pmt->start_thread();
@@ -387,7 +388,7 @@ const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
 }
 
 
-mmotion::mmotion(int w, int h):_w(w),_h(h)
+mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
 {
     _mw = MOTION_SZ;
     _mh = (_mw * _h) / _w;
@@ -435,23 +436,24 @@ int mmotion::has_moved(uint8_t* fmt420)
         for (int x = 0; x < _mw; x++)
         {
             uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent frame
-            Y/=4; //reduce noise
-            Y*=4;
+            Y /= _nr; //reduce noise
+            Y *= _nr;
             *(prowcur + (y * _mw)+x) = Y;
             uint8_t YP = *(prowprev+(y  * _mw) + (x));
-            int diff = Y - YP; if(diff<0)diff=0;
-            if(diff>16){
-		_moves++;
-               diff=255;
+            int diff = Y - YP; if(diff<0) diff=0;
+            if(diff>24){
+	       _moves++;
+                //diff=255;
             }
-	    else
-               diff=0;
+	    else ;
+               // diff=0;
             *(prow + (y * _mw)+x) = (uint8_t)diff;
             ++pixels;
         }
     }
+//    _moves = (_mh * _mw) / _moves;
     assert(pixels <= _motionsz);
-    _motionindex =! _motionindex;
+    _motionindex = !_motionindex;
     return _moves;
 }
 

@@ -56,7 +56,7 @@ class v4ldevice;
 class mmotion : public OsThread
 {
 public:
-    mmotion(int w, int h);
+    mmotion(int w, int h, int nr);
     ~mmotion();
     void thread_main();
     int has_moved(uint8_t* p);
@@ -73,13 +73,14 @@ private:
     uint32_t  _motionsz;
     mutex     _m;
     int       _moves;
+    int       _nr;
 };
 
 
 class v4ldevice
 {
 public:
-    v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi);
+    v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi, int nr=4);
     virtual ~v4ldevice();
 
     bool open();
@@ -105,6 +106,7 @@ private:
     int       _motionhi;
     mmotion*  _pmt;
     int       _moved;
+    int       _nr;
 };
 
 #endif // V4LDEVICE_H
