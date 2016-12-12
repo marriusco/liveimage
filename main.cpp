@@ -44,24 +44,26 @@ static int _usage();
 bool __alive = true;
 bool __capture=false;
 
-static struct {
+static struct
+{
     uint64_t sz;
     int x;
     int y;
 
-}  _rez[]={
-            {  403270  ,1024, 768},
-            {  504435  ,1152, 864},
-            {  614806  ,1280, 960},
-            {  865866  ,1400, 1050},
-            {  1082915 ,1600, 1200},
-            {  1501869 ,1920, 1440},
-            {  1684088 ,2048, 1536},
-            {  2519088 ,2592, 1944},
-            {  174204  ,640,  480},
-            {  237247  ,768,  576},
-            {  256298  ,800,  600},
-        };
+}  _rez[]=
+{
+    {  403270  ,1024, 768},
+    {  504435  ,1152, 864},
+    {  614806  ,1280, 960},
+    {  865866  ,1400, 1050},
+    {  1082915 ,1600, 1200},
+    {  1501869 ,1920, 1440},
+    {  1684088 ,2048, 1536},
+    {  2519088 ,2592, 1944},
+    {  174204  ,640,  480},
+    {  237247  ,768,  576},
+    {  256298  ,800,  600},
+};
 
 
 
@@ -83,7 +85,7 @@ void Capture (int i)
 
 uint64_t _imagesz(int x, int y)
 {
-    for(int k=0;k<sizeof(_rez)/sizeof(_rez[0]);k++)
+    for(int k=0; k<sizeof(_rez)/sizeof(_rez[0]); k++)
     {
         if(_rez[k].x==x && _rez[k].y==y)
         {
@@ -95,10 +97,10 @@ uint64_t _imagesz(int x, int y)
 
 static double gtc(void)
 {
-  struct timespec now;
-  if (clock_gettime(CLOCK_MONOTONIC, &now))
-    return 0;
-  return now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0;
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now))
+        return 0;
+    return now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0;
 }
 
 
@@ -169,12 +171,12 @@ int main(int nargs, char* vargs[])
                 quality = ::atoi(vargs[k]);
                 break;
             case 'm':
-                {
-                    int two = sscanf(vargs[k],"%d,%d", &motiona, &motionb);
-                    if(two != 2 || motiona>=motionb)
-                        return _usage();
-                }
-                break;
+            {
+                int two = sscanf(vargs[k],"%d,%d", &motiona, &motionb);
+                if(two != 2 || motiona>=motionb)
+                    return _usage();
+            }
+            break;
             case 'z':
             {
                 int two = sscanf(vargs[k],"%dx%d", &width, &height);
@@ -231,7 +233,7 @@ int main(int nargs, char* vargs[])
         if(port)
         {
             ps = new sockserver(port, protocol);
-            if(ps->listen()==false)
+            if(ps && ps->listen()==false)
             {
                 delete ps;
                 return 0;
@@ -245,15 +247,15 @@ int main(int nargs, char* vargs[])
         const uint8_t*  video420;
         bool            capture=false;
         bool            shotsignal=false;
-		char 			info[64];
-		uint32_t        maximages=0;
-		uint32_t        firstimage=0;
-		time_t          tnow = time(0);
-		int             periodexpired=0;
+        char 			info[64];
+        uint32_t        maximages=0;
+        uint32_t        firstimage=0;
+        time_t          tnow = time(0);
+        int             periodexpired=0;
 
-		lastsave = tnow;
-		if(filename.find("%") != string::npos) /*saving sequencially*/
-		{
+        lastsave = tnow;
+        if(filename.find("%") != string::npos) /*saving sequencially*/
+        {
             std::string path;
             size_t ls = filename.find_last_of('/');
             if(ls != string::npos)
@@ -262,7 +264,7 @@ int main(int nargs, char* vargs[])
             }
             else
             {
-                char spath[256]={0};
+                char spath[256]= {0};
 
                 ::getcwd(spath, sizeof(spath)-1);
                 path=spath;
@@ -280,6 +282,7 @@ int main(int nargs, char* vargs[])
             {
                 maximages = 1;
             }
+
             FILE* pff = ::fopen("./.lastimage","rb");
             if(pff)
             {
@@ -293,9 +296,12 @@ int main(int nargs, char* vargs[])
         }
 
         double dct =  gtc();
+
         while(__alive  && 0 == ::usleep(4000))
         {
+
             if(ps)ps->spin();
+
 
             shotsignal = sigcapt && __capture; //signal by SIGUSR1
             capture |= shotsignal | motionb | !filename.empty();
@@ -306,7 +312,7 @@ int main(int nargs, char* vargs[])
             dct = dcurt;
 
             ct+=elapsed; // add 10 milliseconds
-             periodexpired = 0;
+            periodexpired = 0;
             if(ct > frameperiod)
             {
                 periodexpired=1;
@@ -320,24 +326,31 @@ int main(int nargs, char* vargs[])
             }
 
             video420 = dev.read(w, h, sz);
-            if(video420)
+            if(video420!=0)
             {
+
                 int movepix = dev.movement();
-				if(movepix >= motiona && movepix <= motionb){
-					std::cout<<"movement pixels = " << movepix << "\n";
+                if(movepix >= motiona && movepix <= motionb)
+                {
+                    std::cout<<"movement pixels = " << movepix << "\n";
                 }
-				else{
+                else
+                {
                     movepix = 0;
-				}
-				tnow = time(0);
+                }
+                tnow = time(0);
+
                 uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
+
                 if(jpgsz )
                 {
+
                     if((sigcapt || periodexpired || movepix) && !filename.empty())
                     {
-                        char fname[PATH_MAX]={0};
+                        char fname[PATH_MAX]= {0};
 
-                        if(maximages){
+                        if(maximages)
+                        {
                             ::sprintf(fname, filename.c_str(), firstimage++);
                             if(firstimage > maximages)
                                 firstimage = 0;
@@ -350,12 +363,13 @@ int main(int nargs, char* vargs[])
                         {
                             ::fwrite(pjpg,1,jpgsz,pf);
                             ::fclose(pf);
-                            if(nsignal){
+                            if(nsignal)
+                            {
                                 ::kill(nsignal, SIGUSR2);
                                 std::cout << "SIGUSR2: " << nsignal << "\n";
                             }
-                            std::cout << "saving: " << fname << "\n";
-
+                            //std::cout << "saving: " << fname << "\n";
+                            usleep(1000);
 
                             if(tnow - lastsave > 2)//2 seconds
                             {
@@ -363,11 +377,12 @@ int main(int nargs, char* vargs[])
                                 FILE* pff = ::fopen("./.lastimage","wb");
                                 if(pff)
                                 {
-                                    ::fprintf(pff,"%d",firstimage);
+                                    ::fprintf(pff,"%s",fname);
                                     ::fclose(pff);
                                 }
                             }
                         }
+
                         sigcapt=0;
                         __capture=false;
                         if(--oneshot==1) // one shot
@@ -375,6 +390,7 @@ int main(int nargs, char* vargs[])
                     }
                     if(ps && ps->has_clients() && periodexpired)
                     {
+
                         ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
                         int w, h;
                         size_t sz;
@@ -387,9 +403,9 @@ int main(int nargs, char* vargs[])
                     }
                 }
             }
-            if(ps->socket()<0 || ps->socket()>32)
+            if(ps && (ps->socket()<0 || ps->socket()>32))
             {
-                assert(0);
+                break;
             }
         }
         delete ps;

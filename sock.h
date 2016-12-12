@@ -374,7 +374,7 @@ public:
 
 protected:
 
-    char    _sip[128];
+    char    _sip[32];
 };
 
 
