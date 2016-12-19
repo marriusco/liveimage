@@ -1,11 +1,5 @@
 source-directory /etc/network/interfaces.d
 
-auto lo
-iface lo inet loopback
-
-auto wlan0
-iface wlan0 inet dhcp
-
 
 allow-hotplug wlan1
 iface wlan1 inet static

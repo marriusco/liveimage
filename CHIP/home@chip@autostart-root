@@ -17,15 +17,18 @@ service lighttpd start
 # start hostapd as long does not start as a service 
 #
 ifconfig wlan1 up
-/usr/sbin/hostapd /etc/hostapd/hostapd.conf
+/usr/sbin/hostapd /etc/hostapd/hostapd.conf &
 
-#
-# turn off on halt file in /tmp
-#
-while [[ 1 ]];do
-	sleep 2
-	kill -9 $(pidof liveimage)
-	kill -9 $(pidof demo.sh)
-	[[ -f /tmp/halt ]] && telinit 0
-done
+function halt()
+{
+	#
+	# turn off on halt file in /tmp
+	#
+	while [[ 1 ]];do
+		sleep 2
+		kill -9 $(pidof liveimage)
+		kill -9 $(pidof demo.sh)
+		[[ -f /tmp/halt ]] && telinit 0
+	done
+}
 

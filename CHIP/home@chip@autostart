@@ -6,6 +6,6 @@
 source /home/chip/.bashrc
 
 pushd /home/chip/liveimage
-	./demo.sh &
+	./demo.sh >/dev/null &
 popd
 
