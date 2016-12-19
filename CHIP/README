@@ -1,6 +1,6 @@
 turns camera into an access point on C. H. I. P.
 and camera liveimage 
 
-run install.sh : look at the cript first
+run install.sh : look at the script first
 run honeypot to redirect any web request to this web server
 
