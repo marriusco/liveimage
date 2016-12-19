@@ -1,0 +1,16 @@
+source-directory /etc/network/interfaces.d
+
+auto lo
+iface lo inet loopback
+
+auto wlan0
+iface wlan0 inet dhcp
+
+
+allow-hotplug wlan1
+iface wlan1 inet static
+address 10.5.5.1
+netmask 255.255.255.0
+network 10.5.5.0
+broadcast 10.5.5.255
+#pre-up iptables-restore < /etc/iptables.rules
