@@ -8,12 +8,16 @@ echo "Please look at this file before running it and comment what you don't like
 read yn
 [[ $yn == 'n' ]] && exit
 
-
+# sudo apt-get update
 # sudo apt-get -y install lighttpd php5-cgi 
+# sudo apt-get -y install --reinstall hostapd
+# sudo apt-get install dnsmasq
 # sudo usermod -a -G www-data chip
 # sudo lighty-enable-mod fastcgi-php
 # sudo service lighttpd stop
-
+# sudo update-rc.d dnsmasq defaults
+# sudo update-rc.d hostapd disable
+# sudo update-rc.d lighttpdd defaults
 
 
 [[ $USER == "root" ]] && echo "run as regular user and pass in password when asked" && exit
@@ -37,5 +41,5 @@ sudo chmod +x /etc/init.d/autostart
 #[[ -f /etc/lighttpd/lighttpd.conf ]] && sudo update-rc.d lighttpd defaults
 chmod +x $HOME/autostart
 chmod +x $HOME/autostart-root
-#sudo reboot
+
 
