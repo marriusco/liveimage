@@ -124,6 +124,7 @@ int main(int nargs, char* vargs[])
     std::string protocol="http";
     std::string format="jpg";
     int         firstf=0,lasstf=0;
+    uint32_t    dark=0;
     int         oneshot=0;
     int         sigcapt=0;
     int         motiona=0;
@@ -146,6 +147,9 @@ int main(int nargs, char* vargs[])
                 return _usage();
             switch(vargs[pk][1])
             {
+            case 'k':
+                dark = ::atoi(vargs[k]);
+		break;
             case 'd':
                 device = vargs[k];
                 break;
@@ -255,7 +259,7 @@ int main(int nargs, char* vargs[])
         const uint8_t*  video420;
         bool            capture=false;
         bool            shotsignal=false;
-        char 			info[64];
+        char 		info[64];
         uint32_t        maximages=0;
         uint32_t        firstimage=0;
         time_t          tnow = time(0);
@@ -283,7 +287,7 @@ int main(int nargs, char* vargs[])
             {
                 uint64_t bytesfree = (uint64_t)(fiData.f_bfree * fiData.f_bsize);
                 uint64_t imgsz = _imagesz(width, height);
-                maximages = (uint32_t)(bytesfree/imgsz)/2;
+                maximages = (uint32_t)(bytesfree/imgsz)/4;
 
             }
             else
@@ -310,7 +314,6 @@ int main(int nargs, char* vargs[])
 
             if(ps)ps->spin();
 
-
             shotsignal = sigcapt && __capture; //signal by SIGUSR1
             capture |= shotsignal | motionb | !filename.empty();
             capture |= ps && ps->has_clients();
@@ -319,7 +322,7 @@ int main(int nargs, char* vargs[])
             double elapsed = dcurt -  dct;
             dct = dcurt;
 
-            ct+=elapsed; // add 10 milliseconds
+            ct+=elapsed; 		// add 10 milliseconds
             periodexpired = 0;
             if(ct > frameperiod)
             {
@@ -338,20 +341,30 @@ int main(int nargs, char* vargs[])
             {
 
                 int movepix = dev.movement();
-                if(movepix >= motiona && movepix <= motionb)
+		int darkpix = dev.dark();
+                if( movepix >= motiona && movepix <= motionb)
                 {
 		    std::cout << "move pix=" << movepix << "\n";
+		    periodexpired=1;
+		    usleep(100);
                 }
                 else
                 {
                     movepix = 0;
                 }
-                tnow = time(0);
 
+                if(darkpix > dark)
+                    std::cout << "dark pix=" << darkpix << "\n";
+                else{
+		    periodexpired=0;
+		}
+
+                tnow = time(0);
                 uint32_t jpgsz = ffmt->convert420(video420, w, h, sz, quality, &pjpg);
 
                 if(jpgsz )
                 {
+//                    std::cout << sigcapt<<", " << periodexpired <<", "<<movepix <<"," <<filename << "\n";
 
                     if((sigcapt || periodexpired || movepix) && !filename.empty())
                     {
@@ -369,6 +382,7 @@ int main(int nargs, char* vargs[])
                         FILE* pf = ::fopen(fname,"wb");
                         if(pf)
                         {
+                            std::cout << "saving: " << fname << "\n";
                             ::fwrite(pjpg,1,jpgsz,pf);
                             ::fclose(pf);
                             if(nsignal)
@@ -376,8 +390,6 @@ int main(int nargs, char* vargs[])
                                 ::kill(nsignal, SIGUSR2);
                                 std::cout << "SIGUSR2: " << nsignal << "\n";
                             }
-                            //std::cout << "saving: " << fname << "\n";
-                            usleep(1000);
 
                             if(tnow - lastsave > 2)//2 seconds
                             {
@@ -389,14 +401,18 @@ int main(int nargs, char* vargs[])
                                     ::fclose(pff);
                                 }
                             }
-                        }
+                        }else{
+				std::cout << "cannot open file:" << fname << "\n";
+				exit(-errno);
+			}
 
                         sigcapt=0;
                         __capture=false;
                         if(--oneshot==1) // one shot
                             break;
                     }
-                    if(ps && ps->has_clients() && periodexpired)
+
+                    if(ps && ps->has_clients())
                     {
 			printf("streaming \n");
                         ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
@@ -428,6 +444,7 @@ static int _usage()
 {
     std::cout <<
               "-d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!\n"
+              "-k Dark treshhold. Stop recording/saving if under dark average lighting (0-255)\n"
               "-s Http server port.\n"
               "-g PID Proces where to send the SIGUSR2 after output is updated.\n"
               "-c signal SIGUSR1 for let go a capture.\n"

@@ -1,0 +1,6 @@
+turns camera into an access point on NANO PI NEO.
+and camera liveimage 
+
+run install.sh : look at the script first
+run honeypot to redirect any web request to this web server
+

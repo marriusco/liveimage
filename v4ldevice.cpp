@@ -428,14 +428,16 @@ int mmotion::has_moved(uint8_t* fmt420)
     uint8_t*          prow = _motionbufs[2];
     uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
     uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
-    int               pixels=0;
+    int               pixels = 0;
 
+    _dark=0;
     _moves = 0;
     for (int y= 0; y <_mh; y++)
     {
         for (int x = 0; x < _mw; x++)
         {
             uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent frame
+            _dark+=(uint32_t)Y;
             Y /= _nr; //reduce noise
             Y *= _nr;
             *(prowcur + (y * _mw)+x) = Y;
@@ -451,7 +453,7 @@ int mmotion::has_moved(uint8_t* fmt420)
             ++pixels;
         }
     }
-//    _moves = (_mh * _mw) / _moves;
+    _dark /= pixels;
     assert(pixels <= _motionsz);
     _motionindex = !_motionindex;
     return _moves;

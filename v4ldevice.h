@@ -63,6 +63,7 @@ public:
     int  getw()const{return _mw;}
     int  geth()const{return _mh;}
     uint8_t*  motionbuf()const{return _motionbufs[2];}
+    uint32_t dark()const{return _dark;}
 private:
     int       _w;
     int       _h;
@@ -73,6 +74,7 @@ private:
     uint32_t  _motionsz;
     mutex     _m;
     int       _moves;
+    uint32_t  _dark;
     int       _nr;
 };
 
@@ -89,18 +91,19 @@ public:
     const uint8_t* getm(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     int _proc_buff(const void* p, struct timeval& t);
     int movement()const{return _moved;}
+    uint32_t dark()const{return _pmt ? _pmt->dark() : 255;}
 private:
     int _ioctl(int request, void* argp);
 
 private:
-    char    _sdevice[128];
-    int     _device;
-    int     _xy[2];
-    int     _fps;
-    int     _curbuffer;
-    timeval _curts;
-    uint32_t _buffsize;
-    struct   videobuffer  _buffers[MAX_BUFFERS];
+    char      _sdevice[64];
+    int       _device;
+    int       _xy[2];
+    int       _fps;
+    int       _curbuffer;
+    timeval   _curts;
+    uint32_t  _buffsize;
+    struct    videobuffer  _buffers[MAX_BUFFERS];
     time_t    _lasttime;
     int       _motionlow;
     int       _motionhi;
