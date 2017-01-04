@@ -10,4 +10,6 @@
     </center>
   </body>
 </html>
-
+<!-- make a symbolic link /data/* -> /var/www -->
+<a href='videos'>videos</a><br />
+<a href='snaps'>snaps</a>
