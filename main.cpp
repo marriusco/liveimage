@@ -309,7 +309,7 @@ int main(int nargs, char* vargs[])
 
         double dct =  gtc();
 
-        while(__alive  && 0 == ::usleep(4000))
+        while(__alive  && 0 == ::usleep(2000))
         {
 
             if(ps)ps->spin();
@@ -346,7 +346,7 @@ int main(int nargs, char* vargs[])
                 {
 		    std::cout << "move pix=" << movepix << "\n";
 		    periodexpired=1;
-		    usleep(100);
+		    usleep(1000);
                 }
                 else
                 {
@@ -414,7 +414,7 @@ int main(int nargs, char* vargs[])
 
                     if(ps && ps->has_clients())
                     {
-			printf("streaming \n");
+	//		printf("streaming \n");
                         ps->stream_on(pjpg, jpgsz, format=="jpg" ? "jpeg" : "png", 1);
                         int w, h;
                         size_t sz;

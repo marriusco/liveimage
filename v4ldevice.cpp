@@ -135,7 +135,7 @@ bool v4ldevice::open()
             std::cout << "error set frame interval " << _fps << "\n";
         }
         _fps = fint.parm.capture.timeperframe.denominator;
-        std::cout << "FPS: recalculated" << _fps << "\n";
+        std::cout << "FPS: recalculated duet camera limitations at: " << _fps << "\n";
     }
    uint32_t wmin = frmt.fmt.pix.width * 2;
     if (frmt.fmt.pix.bytesperline < wmin)

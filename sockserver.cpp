@@ -321,7 +321,7 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, i
 
             rv = s->sendall(buffer,strlen(buffer),100);
             s->_headered=true;
-            usleep(10000);
+            usleep(1000);
         }
 
         sprintf(buffer, "Content-Type: image/%s\r\n" \
@@ -336,7 +336,7 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, i
             std::cout << "socket closed during sent \n";
             goto DONE;
         }
-        usleep(100);
+        usleep(1000);
         /// std::cout << buffer << "(" << sz << ")\n";
         rv = s->sendall(jpg,sz,1000);
         if(rv ==0)
