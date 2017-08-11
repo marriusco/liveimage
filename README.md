@@ -116,7 +116,6 @@ Current image:113, Roll up at:1
 movement pixels = 21
 movement pixels = 21
 movement pixels = 20
-movement pixels = 20 << HANG HERE. CHIP is off. power  consumption is 0.04A. Needs reboot
 
 
 ```

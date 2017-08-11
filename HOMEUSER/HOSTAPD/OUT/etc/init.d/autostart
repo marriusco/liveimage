@@ -7,20 +7,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PROCESS=/home/$USER/autostart
-PROCESSROOT=/home/$USER/autostart-root
+PROCESS=/home/marius/.autostart
 
 stop() {
-    kill $(pidof autostart)
-    kill $(pidof autostart-root)
+    kill $(pidof .autostart)
     sleep 1
 }
 
 start() {
-     ${PROCESSROOT} &
-     su -c ${PROCESS} -s /bin/bash $USER &
+     #su -c ${PROCESS} -s /bin/bash marius &
+     $PROCESS > /var/log/$PROCESS.log0 &
 }
-
 
 case "$1" in
 start)

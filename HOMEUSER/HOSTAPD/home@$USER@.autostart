@@ -1,0 +1,19 @@
+#!/bin/bash
+
+sudo usermod -a -G video $USER
+sudo chmod 777 /dev/video0
+
+
+sleep 1
+service lighthttpd stop
+service hostapd stop
+sleep 1
+
+chown -R $USER:$USER /var/run/lighttpd
+chown -R $USER:$USER /var/cache/lighttpd
+chown -R $USER:$USER /var/log/lighttpd/*
+service lighttpd start
+sleep 1
+ifconfig $WLAN up
+/usr/sbin/hostapd /etc/hostapd/hostapd.conf &
+

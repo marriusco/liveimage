@@ -1,0 +1,16 @@
+#!/bin/bash
+
+
+sleep 1
+service lighthttpd stop
+service hostapd stop
+sleep 1
+
+chown -R marius:marius /var/run/lighttpd
+chown -R marius:marius /var/cache/lighttpd
+chown -R marius:marius /var/log/lighttpd/*
+service lighttpd start
+sleep 1
+ifconfig wnal0 up
+/usr/sbin/hostapd /etc/hostapd/hostapd.conf &
+
