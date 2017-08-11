@@ -38,15 +38,57 @@ sudo adduser $USER video
 The configuration file should be placed in the running folder. The file has only one secion. [main]
 The settings are:
 
-    - adsf
-        -asdfa
-    - asd
-    
-
-
-
-
-
+    - darklapse=20            Dark average luminance (0 .. 255) when time lapse would stop snapping. 0 to disable
+    - darkmotion=10           Dark average luminance when a motion wont be triggered.
+    - device=/dev/video0      The device
+    - port=9000               TCP Camera server listening port. 0 to disable
+    - filename=images/img_%d  Where to save snapsoths. Folder should be precreated. Images are names img_0001 .. img_XXXX, 
+                              and would be rolled up to the folder (partition) free space.
+    - oneshot=0               When 1 runs, captures and exist
+    - quality=80              Quality of the jPG saved and shown in the web
+    - motion=20,300           Motion limits (min.max). Max motion is (64*apect-ratio*64), and would never happen. 
+                              Motion is triggered when motion pixels are in between min and max values.
+                              Test for what are yo ineterested, look at the captures motion data and set the limits acordingly.
+                              0,0 to disable motion detection
+    - motionnoise=4           Motion noise atenuation (1..16). If camera is noisy increase until under low lighting 
+                              wont trigger movement.  Watch /?motion image to tweak.
+    - fps=15                  Better be 15
+    - motionsnap=200          Interval to capture to sense motion. (50..1000)
+    - imagesize=640x480       Camera resolution 
+    - timelapse=2000          Iterval for timelapse in ms. 0 to disable  
+    - signalin=0              Not used. Send SIGUSR2 to force a capture now.
+    - userpid=0               Where to send SIGUSR2 when an image is saved. Last image is allways in /temp/liveimage.jpg
+    - httpport=8080           liveimage http port
+    - httpip=127.0.0.1        The network IP where liveimage runs. This IP usually.
   
   
+### Samples
   
+  
+#### With Apache/Lighttpd:
+
+make a page
+```javascript
+  
+  <html>
+  <head>
+  </head>
+  <body bgcolor="#E6E6FA">
+    <center>
+<?php
+      echo "<img width='320' src='http://{$_SERVER['HTTP_HOST']}:9000/?image' />";
+      echo "<img width='320' src='http://{$_SERVER['HTTP_HOST']}:9000/?motion' /><hr />";
+?>
+    </center>
+  </body>
+</html>
+
+```
+
+#### Without Apache:
+    - Write in browser address:
+        - http://localhost:90000/?html
+        
+        
+        
+
