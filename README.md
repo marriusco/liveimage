@@ -1,4 +1,11 @@
-# LIGHTWEIGHT CAMERA MOTION DETECTION, TIME LAPSE and WEB 
+# LIGHTWEIGHT CAMERA MOTION DETECTION, 
+#  TIME LAPSE and WEB CAM 
+
+### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
+### Acceessible direct from browser without additional web server. http://IP:PORT/?html
+### Time lapse snapshots 
+### Motion Detection 
+
 
 Light weight camera designed to run on small ARM linuxes. Plays videos in the browser, Captures images when
 senses motion, or at certain interval based on settings. There are some scripts (undocumented) which allows to turn
@@ -6,10 +13,6 @@ a Linux ARM board equiped with a wifi into an camera wifi access point. Check ea
 Questions, just ask. Complex Questions, have a paypal account.
 
 [![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://youtu.be/gebbErEJj1A)
-
-## Camera streaming live to animated JPG 
-### Does not require javascript, 
-### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 
 ### Build
 
