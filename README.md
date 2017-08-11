@@ -1,123 +1,52 @@
-# liveimage  (Animated JPG, Animated PNG)
+# LIGHTWEIGHT CAMERA MOTION DETECTION, TIME LAPSE and WEB 
 
-## Camera streamingive to animated JPG or PNG . 
+Light weight camera designed to run on small ARM linuxes. Plays videos in the browser, Captures images when
+senses motion, or at certain interval based on settings. There are some scripts (undocumented) which allows to turn
+a Linux ARM board equiped with a wifi into an camera wifi access point. Check each acript before running in.
+Questions, just ask. Complex Questions, have a paypal account.
+
+[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://youtu.be/gebbErEJj1A)
+
+## Camera streaming live to animated JPG 
 ### Does not require javascript, 
-### Does not require video tags and or any other playback controls. 
 ### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
-
-```diff
-- <!-- create an image tag. That's it-->
-- <img src='IP_OF_liveimage:PORT/?live'>
-- <img src='IP_OF_liveimage:PORT/?motion'>  <!-- under development -->
-```
-
 
 ### Build
 
 ```javascript
-clone the repo
-install prerequisites
-sudo apt-get install libpng-dev
+git clone https://github.com/comarius/liveimage
 sudo apt-get install libv4l-dev
 sudo apt-get install libjpeg-dev
 cd liveimage
 cmake .
 make
 sudo adduser $USER video
-#run
+
+# create a folder images under liveimage
+# check liveimage.conf
 ./liveimage
--d Video device '/dev/video#'. Default  /dev/video0. Add user to video group!!!
--s Http server port.
--o Output filename, no extension (extension added by format [-f]). 
--i jpg|png Image format. Default jpg
--q NN JPEG quality (0-100). Default 90%
--z WxH Image width and height. Could be adjusted. Default 640x480
--f FFF frames per second. For 0 saves one snapshot then exits. Values 1-100 
--n NNN At how many frames [-f] to save a snapshot
 ```
 
-### Preview
+### Tested on
 
-  - To preview a video as animated JPEG in a web page at localhost at address 8080 run as:
-    - ./liveimage -d /dev/video0 -s 8080 -i jpg
-  - Then open the browser and open the image.html  file
+  - HP x86_64 Linux with incorporated webcam
+  - R-PI 3 with USB Camera
+  - Nano Pi with USB camera and wifi USB dongle supporting AP
+  - C.H.I.P with USB camera. The USB cable was changed to allow external power to USB camera due C.H.I.P. USB faulty USB port
   
-  - To preview a video as animated PNG in a web page at localhost at address 8080 run as:
-    - ./liveimage -d /dev/video0 -s 8080 -i png
-  - Then open the browser and open the image.html  file
-  
-  - For timelapse  snapshots, and have the live previev at the same time use -f and -n flags
-  - Next would preview at 30 fps and would save an snapsot in filename.jpg each 60 frames (2 seconds)
-    - ./liveimage -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60
- 
-### PHP
+### Configuration liveimage.conf
+The configuration file should be placed in the running folder. The file has only one secion. [main]
+The settings are:
 
-If you have Apache, Nginx or Lighttpd running, to add a live preview to a php page
-use following approach:
-   - have liveimage running, install it in sysV as a service.
+    - adsf
+        -asdfa
+    - asd
     
-```javascript
-
-<?php
-     echo "<img src='http://{$_SERVER['SERVER_ADDR']}:8080/?live' />";
-?>
-```
-
-
-    
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://youtu.be/gebbErEJj1A)
 
 
 
-### Automating
 
-'liveimage -d /dev/video0 -s 8080 -i jpg -o filename -f 30 -n 60' would save every 2 seconds a snapsot called filename.jpg. If the filename requires post-processing the '-g' flag is the saviour. Passing a process id via -g, liveimage would signal that process by SIGUSR1. Following bash shows the concept.
 
-```javascript
-#!/bin/bash
-function ex
-{
-    echo "file was saved"
-    # move, rename file or post porcess the file
-}
-
-trap ex SIGUSR1
-
-# run in bg so it can fire signals here
-./liveimage -d /dev/video1 -o filename -s 8080 -g $$ &
-
-# stay here to trap the process
-while [[ 1 ]]; do
-    sleep 1
-done
-kill -9 (pidof liveimage)
-
-```
-
-### Tested
-
-  * R-PI 3
-  * Nano PI Neo
-  * C. H. I. P., 
-    * crashes, CHIP became unresponsive. liveimage and php files are corrupted.
-    * After I disable removed lightdm/gdm, and with a time frame at <15 fps (100ms) works fine
   
-```
-./liveimage
-YUYV 4:2:2
-RGB3
-BGR3
-YU12
-YV12
-FPS: recalculated15
-/dev/video0 opened
-listening 
-Current image:113, Roll up at:1
-movement pixels = 21
-movement pixels = 21
-movement pixels = 20
-movement pixels = 20 << HANG HERE. CHIP is off. power  consumption is 0.04A. Needs reboot
-
-
-```
-
+  
+  
