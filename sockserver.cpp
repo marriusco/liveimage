@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include "sockserver.h"
 #include "outfilefmt.h"
+#include "liconfig.h"
 
 extern bool __alive;
 
@@ -50,7 +51,7 @@ AGAIN:
             std::cout <<"socket can't listen. Trying "<< (ntry+1) << " out of 10 " << DERR();
 
             _s.destroy();
-            sleep(3);
+            sleep(1);
             if(++ntry<10)
                 goto AGAIN;
             return false;
@@ -110,9 +111,8 @@ bool sockserver::spin()
             if(_s.accept(*cs)>0)
             {
                 cs->set_blocking(0);
-                cs->_live=-1;
+                cs->_needs=0;
                 std::cout <<"new connection \n";
-
                 _clis.push_back(cs);
             }
         }
@@ -123,9 +123,9 @@ bool sockserver::spin()
                 continue;
             if(FD_ISSET(s->socket(), &rd))
             {
-                char req[300] = {0};
+                char req[512] = {0};
 
-                int rt = s->receive(req,299);
+                int rt = s->receive(req,511);
                 if(rt==0)//con closed
                 {
 				    std::cout << "client closed connection \n";
@@ -134,25 +134,30 @@ bool sockserver::spin()
                 }
                 if(rt > 0)
                 {
-					if(s->_live == -1 )
+                    if(s->_needs == 0 )
 					{
-                    	if( strstr(req, "/?live"))
+                        if( strstr(req, "/?live"))
 		    			{
-							std::cout << "setting " << s << " to live stream \n";
-                        	s->_live = 1;
+                            std::cout << "          ?LIVE \n";
+                            s->_needs = WANTS_IMAGE;
                			}
                     	else if( strstr(req, "/?motion"))
                			{
-							std::cout << "setting " << s << " to motion stream \n";
-                        	s->_live = 0;
+                            std::cout << "          ?MOTION \n";
+                            s->_needs = WANTS_MOTION;
                			}
-                    	else if( strstr(req, "/?info"))
+                        else if( strstr(req, "/?video"))
                			{
-							std::cout << "setting " << s << " to text \n";
-                        	s->_live = 2;
+                            std::cout << "          ?VIDEO (work in progress) \n";
+                            s->_needs = WANTS_VIDEO_TODO;
                			}
+                        else if( strstr(req, "/?html"))
+                        {
+                            std::cout << "          ?HTML \n";
+                            s->_needs = WANTS_HTML;
+                        }
                     }
-                    std::cout << s << "," << s->_live  << ": " << req << "\n";
+                    // std::cout << s << "," << s->_needs  << ": " << req << "\n";
                 }
             }
         }
@@ -187,8 +192,6 @@ bool sockserver::snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
 
     gettimeofday(&timestamp, &tz);
     sprintf(hdr,HDR, ifmt, sz, (int) timestamp.tv_sec, (int) timestamp.tv_usec);
-
-
     for(auto& s : _clis)
     {
 
@@ -204,6 +207,16 @@ bool sockserver::snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
     _clean();
     return rv==(int)sz;
 }
+
+int  sockserver::anyone_needs()const
+{
+    int needs = 0;
+    for(auto& s : _clis)
+        needs |= s->_needs;
+    return needs;
+}
+
+
 
 void sockserver::_clean()
 {
@@ -223,78 +236,55 @@ AGAIN:
         }
     }
     _dirty=false;
-
 }
 
-bool sockserver::stream_text(const char* text)
+void sockserver::_send_page(imgclient* pc)
 {
-	char buffer[256] = {0};
-	struct timeval timestamp;
-    struct timezone tz = {5,0};
-    int rv = 0;
+    char  image[128];
+    char  html[256];
 
-    gettimeofday(&timestamp, &tz);
+    int len = ::sprintf(image,
+            "<img width='320' src='http://%s:9000/?live' />",GCFG->_glb.httpip.c_str());
+    len = ::sprintf(html,
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-length: %d\r\n"
+                    "Content-Type: text/html\r\n\r\n%s",len, image);
+    pc->sendall(html, len);
+}
+
+bool sockserver::stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, int wants)
+{
+    bool rv;
     for(auto& s : _clis)
     {
-        if(2 != s->_live)
-            continue;
-
-        if(!s->_headered)
+        switch(s->_needs)
         {
-            sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
-            "HTTP/1.0 200 OK\r\n"
-            "Connection: close\r\n"
-            "Server: v4l2net/1.0\r\n"
-            "Cache-Control: no-cache\r\n"
-            "Content-Type: multipart/x-mixed-replace;boundary=thesupposedunixxxx\r\n" \
-                    "\r\n" \
-                    "--thesupposedunixxxx\r\n");
-
-            rv = s->sendall(buffer,strlen(buffer),100);
-            s->_headered=true;
-            usleep(1000);
-        }
-
-        sprintf(buffer, "Content-Type: text/html\r\n" \
-            "Content-Length: %d\r\n" \
-            "X-Timestamp: %d.%06d\r\n" \
-            "\r\n", strlen(text), (int)timestamp.tv_sec, (int)timestamp.tv_usec);
-        rv = s->sendall(buffer,strlen(buffer),100);
-        if(rv ==0)
-        {
-            s->destroy();
-            _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
-        }
-        /// std::cout << buffer << "(" << sz << ")\n";
-        rv = s->sendall(text,strlen(text),1000);
-        if(rv ==0)
-        {
-            s->destroy();
-            _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
-        }
-        sprintf(buffer, "\r\n--thesupposedunixxx\r\nContent-Type: text/html\r\n");
-        rv = s->sendall(buffer,strlen(buffer),100);
-        if(rv ==0)
-        {
-            s->destroy();
-            _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
+            case WANTS_MOTION:
+                if(wants == WANTS_MOTION)
+                    rv = this->_stream_image(s, buff, sz, ifmt);
+            break;
+            case WANTS_IMAGE:
+                if(wants == WANTS_IMAGE)
+                    rv = this->_stream_image(s, buff, sz, ifmt);
+                break;
+            case WANTS_VIDEO_TODO:
+                if(wants == WANTS_VIDEO_TODO)
+                    rv = this->_stream_video(s, buff, sz);
+                break;
+            case WANTS_HTML:
+                _send_page(s);
+                break;
+            default:
+                break;
         }
     }
-DONE:
-    _clean();
-    return rv>0;
-
-
+    if(_dirty)
+        _clean();
+    return rv;
 }
 
 
-bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap)
+bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, const char* ifmt)
 {
     char buffer[256] = {0};
     struct timeval timestamp;
@@ -302,64 +292,63 @@ bool sockserver::stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, i
     int rv = 0;
 
     gettimeofday(&timestamp, &tz);
-
-    for(auto& s : _clis)
+    if(!pc->_headered)
     {
-        if(motionmap != s->_live)
-            continue;
+        sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
+        "HTTP/1.0 200 OK\r\n"
+        "Connection: close\r\n"
+        "Server: v4l2net/1.0\r\n"
+        "Cache-Control: no-cache\r\n"
+        "Content-Type: multipart/x-mixed-replace;boundary=thesupposeduniqueb\r\n" \
+                "\r\n" \
+                "--thesupposeduniqueb\r\n");
 
-        if(!s->_headered)
+        rv = pc->sendall(buffer, strlen(buffer),100);
+        if(rv==0)
         {
-            sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
-            "HTTP/1.0 200 OK\r\n"
-            "Connection: close\r\n"
-            "Server: v4l2net/1.0\r\n"
-            "Cache-Control: no-cache\r\n"
-            "Content-Type: multipart/x-mixed-replace;boundary=thesupposeduniqueb\r\n" \
-                    "\r\n" \
-                    "--thesupposeduniqueb\r\n");
-
-            rv = s->sendall(buffer,strlen(buffer),100);
-            s->_headered=true;
-            usleep(1000);
-        }
-
-        sprintf(buffer, "Content-Type: image/%s\r\n" \
-            "Content-Length: %d\r\n" \
-            "X-Timestamp: %d.%06d\r\n" \
-            "\r\n", ifmt, sz, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
-        rv = s->sendall(buffer,strlen(buffer),100);
-        if(rv ==0)
-        {
-            s->destroy();
+            pc->destroy();
             _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
+            return false;
         }
-        usleep(1000);
-        /// std::cout << buffer << "(" << sz << ")\n";
-        rv = s->sendall(jpg,sz,1000);
-        if(rv ==0)
-        {
-            s->destroy();
-            _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
-        }
-        usleep(100);
-        sprintf(buffer, "\r\n--thesupposeduniqueb\r\nContent-type: image/%s\r\n", ifmt);
-        rv = s->sendall(buffer,strlen(buffer),100);
-        if(rv ==0)
-        {
-            s->destroy();
-            _dirty=true;
-            std::cout << "socket closed during sent \n";
-            goto DONE;
-        }
+        pc->_headered=true;
     }
-DONE:
-    _clean();
-    return rv>0;
+    sprintf(buffer, "Content-Type: image/%s\r\n" \
+        "Content-Length: %d\r\n" \
+        "X-Timestamp: %d.%06d\r\n" \
+        "\r\n", ifmt, sz, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
+    rv = pc->sendall(buffer,strlen(buffer),100);
+    if(rv==0)
+    {
+        pc->destroy();
+        _dirty=true;
+        return false;
+    }
+    rv = pc->sendall(buff,sz,1000);
+    if(rv==0)
+    {
+        pc->destroy();
+        _dirty=true;
+        return false;
+    }
+    ::sprintf(buffer, "\r\n--thesupposeduniqueb\r\nContent-type: image/%s\r\n", ifmt);
+    rv = pc->sendall(buffer,strlen(buffer),100);
+    if(rv==0)
+    {
+        pc->destroy();
+        _dirty=true;
+    }
+    return true;
 }
 
+bool sockserver::_stream_video(imgclient* pc, const uint8_t* buff, uint32_t sz)
+{
+    int rv = pc->sendall(buff,sz,1000);
+    if(rv==0)
+    {
+        pc->destroy();
+        _dirty=true;
+        return false;
+    }
+    return true;
+}
 

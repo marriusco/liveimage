@@ -24,12 +24,19 @@
 #include <vector>
 
 
+#define     WANTS_IMAGE     0x1
+#define     WANTS_VIDEO_TODO     0x2
+#define     WANTS_MOTION    0x4
+#define     WANTS_MAX       0x8
+#define     WANTS_HTML      0x10
+
 class imgclient : public tcp_cli_sock
 {
 public:
-    imgclient():_live(-1),_headered(false){}
+
+    imgclient():_needs(0),_headered(false){}
     ~imgclient(){}
-    int _live;
+    int _needs;
     bool _headered;
     std::string  _message;
 };
@@ -46,13 +53,18 @@ public:
     bool spin();
     int  socket() {return _s.socket();}
     bool has_clients();
-    bool snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt);
-    bool stream_on( const uint8_t* jpg, uint32_t sz, const char* ifmt, int motionmap);
-    bool stream_text( const char* text);
+    bool snap_on(  const uint8_t* jpg, uint32_t sz, const char* ifmt);
+    bool stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, int wants);
+    int  anyone_needs()const;
+
 private:
     void _clean();
+    bool _stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, const char* ifmt);
+    bool _stream_video(imgclient* pc, const uint8_t* buff, uint32_t sz);
+    void _send_page(imgclient* pc);
 
     tcp_srv_sock _s;
+    tcp_srv_sock _h;
     int      _port;
     string   _proto;
     std::vector<imgclient*> _clis;

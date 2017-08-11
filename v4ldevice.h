@@ -63,7 +63,7 @@ public:
     int  getw()const{return _mw;}
     int  geth()const{return _mh;}
     uint8_t*  motionbuf()const{return _motionbufs[2];}
-    uint32_t dark()const{return _dark;}
+    uint32_t darkav()const{return _dark;}
 private:
     int       _w;
     int       _h;
@@ -76,6 +76,7 @@ private:
     int       _moves;
     uint32_t  _dark;
     int       _nr;
+    int       _mmeter;
 };
 
 
@@ -91,7 +92,7 @@ public:
     const uint8_t* getm(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     int _proc_buff(const void* p, struct timeval& t);
     int movement()const{return _moved;}
-    uint32_t dark()const{return _pmt ? _pmt->dark() : 255;}
+    uint32_t darkaverage()const{return _pmt ? _pmt->darkav() : 255;}
 private:
     int _ioctl(int request, void* argp);
 
@@ -110,6 +111,7 @@ private:
     mmotion*  _pmt;
     int       _moved;
     int       _nr;
+
 };
 
 #endif // V4LDEVICE_H

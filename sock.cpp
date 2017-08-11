@@ -228,7 +228,7 @@ SOCKET sock::create(const SADDR_46& r, int opt)
 
 
 //-----------------------------------------------------------------------------
-char* sock::GetLocalIP(const char* reject)
+char* sock::GetLocalIP(const char* allow)
 {
     static char localip[2048];
 
@@ -270,10 +270,10 @@ char* sock::GetLocalIP(const char* reject)
             inet_ntop(AF_INET, tmpAddrPtr, tmp, (sizeof(tmp)-1));
             if(strlen(localip) + strlen(tmp) < (sizeof(localip)-1) )
             {
-                if(!::strcmp(reject,tmp))
+                if(::strstr(allow, tmp))
                 {
-                    ::strcat(localip, tmp);
-                    ::strcat(localip, ",");
+                    ::strcpy(localip, tmp);
+                    break;
                 }
             }
         }
@@ -697,24 +697,23 @@ SOCKET tcp_srv_sock::create(int port, int opt, const char* iface)
         _error = errno;
         return (SOCKET)-1;
     }
-    struct sockaddr_in some;
-     // store IP in antelope
     _local_sin.sin_family		= AF_INET;
     if(iface)
         inet_aton(iface, &_local_sin.sin_addr);
     else
         _local_sin.sin_addr.s_addr	= htonl(INADDR_ANY);
     _local_sin.sin_port		    = htons(n_port = port);
-    if(::bind(_thesock,(struct sockaddr*)&_local_sin,_local_sin.rsz()) < 0)
-    {
-        _error =  errno;
-        destroy();
-        return (SOCKET)-1;
-    }
+    // option before bind will allow recreation on same SIN when closed imediatelly
     if(opt)
     {
         int one = 1;
         ::setsockopt(_thesock, SOL_SOCKET, /*SO_REUSEADDR*/opt, (char *)&one, sizeof(one));
+    }
+    if(::bind(_thesock, (struct sockaddr*)&_local_sin, _local_sin.rsz()) < 0)
+    {
+        _error =  errno;
+        destroy();
+        return (SOCKET)-1;
     }
     return _thesock;
 }

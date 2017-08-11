@@ -63,10 +63,10 @@ bool v4ldevice::open()
         return false;
     }
 
-    struct v4l2_capability  caps = {0};
-    struct v4l2_format      frmt = {0};
-    struct v4l2_crop        crop = {0};
-    struct v4l2_cropcap     cropcap = {0};
+    struct v4l2_capability  caps;// = {0};
+    struct v4l2_format      frmt;// = {0};
+    struct v4l2_crop        crop;// = {0};
+    struct v4l2_cropcap     cropcap;// = {0};
     struct v4l2_fmtdesc     fmtdesc;
 
 
@@ -124,7 +124,7 @@ bool v4ldevice::open()
 
     if (_fps>=0)
     {
-        struct v4l2_streamparm  fint = {0};
+        struct v4l2_streamparm  fint;// = {0};
 
         fint.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fint.parm.capture.timeperframe.numerator = 1;
@@ -137,7 +137,7 @@ bool v4ldevice::open()
         _fps = fint.parm.capture.timeperframe.denominator;
         std::cout << "FPS: recalculated duet camera limitations at: " << _fps << "\n";
     }
-   uint32_t wmin = frmt.fmt.pix.width * 2;
+    uint32_t wmin = frmt.fmt.pix.width * 2;
     if (frmt.fmt.pix.bytesperline < wmin)
         frmt.fmt.pix.bytesperline = wmin;
     wmin = frmt.fmt.pix.bytesperline * frmt.fmt.pix.height;
@@ -147,7 +147,7 @@ bool v4ldevice::open()
 
     uint32_t page_size  = getpagesize();
     uint32_t buffer_size = (frmt.fmt.pix.sizeimage + page_size - 1) & ~(page_size - 1);
-    struct v4l2_requestbuffers req = {0};
+    struct v4l2_requestbuffers req; // = {0};
     enum v4l2_buf_type type;
 
     _buffsize = buffer_size;
@@ -183,7 +183,7 @@ bool v4ldevice::open()
                 return false;
             }
 
-            struct v4l2_buffer buf = {0};
+            struct v4l2_buffer buf;// = {0};
             buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory = V4L2_MEMORY_USERPTR;
             buf.index = i;
@@ -211,7 +211,7 @@ bool v4ldevice::open()
 
     for (uint32_t i = 0; i < req.count; ++i)
     {
-        struct v4l2_buffer buf = {0};
+        struct v4l2_buffer buf;// = {0};
 
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
@@ -264,7 +264,7 @@ bool v4ldevice::open()
             _motionhi = 0;
         }
     }
-     _curbuffer=0;
+    _curbuffer=0;
     return true;
 }
 
@@ -331,8 +331,7 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz)
         return 0;
     }
 
-    struct v4l2_buffer buf = {0};
-
+    struct v4l2_buffer buf; // = {0};
     buf.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = _buffers[_curbuffer].mmap;
     if(-1==_ioctl(VIDIOC_DQBUF, &buf))
@@ -404,6 +403,7 @@ mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
     _motionindex = 0;
     _motionsz = msz;
     _moves=0;
+    _mmeter = 0;
 }
 
 mmotion::~mmotion()
@@ -425,32 +425,55 @@ int mmotion::has_moved(uint8_t* fmt420)
     register uint8_t *base_py = fmt420;
     int               dx = _w / _mw;
     int               dy = _h / _mh;
-    uint8_t*          prow = _motionbufs[2];
+    uint8_t*          pSeen = _motionbufs[2];
     uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
     uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
     int               pixels = 0;
 
     _dark=0;
     _moves = 0;
-    for (int y= 0; y <_mh; y++)
+    for (int y= 0; y <_mh; y++)//height
     {
-        for (int x = 0; x < _mw; x++)
+        for (int x = 0; x < _mw; x++)//width
         {
-            uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent frame
-            _dark+=(uint32_t)Y;
+            uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent PIXEL
+
+            // compute darklapse of the image
+            _dark += uint32_t(Y);
             Y /= _nr; //reduce noise
             Y *= _nr;
-            *(prowcur + (y * _mw)+x) = Y;
-            uint8_t YP = *(prowprev+(y  * _mw) + (x));
-            int diff = Y - YP; if(diff<0) diff=0;
+
+            *(prowcur + (y * _mw)+x) = Y;               // build new video buffer
+
+            uint8_t YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
+            int diff = Y - YP;
+            if(diff<0)
+                diff=0;
             if(diff>24){
-	       _moves++;
-                //diff=255;
+                ++_moves;
             }
-	    else ;
-               // diff=0;
-            *(prow + (y * _mw)+x) = (uint8_t)diff;
+            *(pSeen + (y * _mw)+x) = (uint8_t)diff;      // what we see
             ++pixels;
+        }
+    }
+
+    // show movement on left
+    int percentage = (float(_moves) / float(pixels)) * float(_mh);
+    if(percentage > _mmeter)
+        _mmeter = percentage;
+    else if(_mmeter)
+        --_mmeter;
+    if(_mmeter)
+    {
+        int y =_mh;
+        int x = 0;
+        while(y)
+        {
+            if(_mmeter < y)
+                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)0;
+            else
+                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)255;
+            --y;
         }
     }
     _dark /= pixels;

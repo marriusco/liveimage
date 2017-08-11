@@ -12,7 +12,7 @@ function exfoo
 
 trap exfoo SIGUSR2
 
-./liveimage -d /dev/video0 -o /data/snaps/img-06d% -s 8080 -m 20,300 -T 1  &
+./liveimage
 
 while [[ 1 ]]; do
     sleep 1
