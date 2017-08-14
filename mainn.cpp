@@ -297,43 +297,39 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         //
         if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
         {
-            char fname[128];
-            FILE* pff = ::fopen("/tmp/liveimage.jpg","wb");
+            const unsigned char color[] = { 255,255,255 };
+            const unsigned char bg[] = { 0,0, 128};
+            char 		fname[128];
+            char                stamp[128];
+            FILE* 		pff = ::fopen("/tmp/liveimage.jpg","wb");
             if(pff)
             {
                 ::fwrite(pjpg,1,jpgsz,pff);
                 ::fclose(pff);
-            }
+	            cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
+        	    ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
+	            ++firstimage;
+        	    if(firstimage > maxfiles)  firstimage = 0;
+	            std::cout << "saving: " << fname << "\n";
+        	    ::sprintf(stamp, "%s, %s: motion: %d", fname, str_time(), movepix);
+	            cimage.draw_text(10, ih-17, stamp, color, bg, 1, 16);	
+        	    cimage.save(fname);
+	            if(GCFG->_glb.userpid > 0)
+        	    {
+                	::kill(GCFG->_glb.userpid, SIGUSR2);
+	                std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
+        	    }
 
-            const unsigned char         color[] = { 255,255,255 };
-            const unsigned char         bg[] = { 0,0, 128};
-            cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
-            char                        stamp[128];
-
-            ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
-            ++firstimage;
-            if(firstimage > maxfiles)  firstimage = 0;
-
-            std::cout << "saving: " << fname << "\n";
-            ::sprintf(stamp, "%s, %s: motion: %d", fname, str_time(), movepix);
-            cimage.draw_text(10, ih-17, stamp, color, bg, 1, 16);
-            cimage.save(fname);
-
-            if(GCFG->_glb.userpid > 0)
-            {
-                ::kill(GCFG->_glb.userpid, SIGUSR2);
-                std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
-            }
-
-            //
-            // last image name
-            //
-            pff = ::fopen("./.lastimage","wb");
-            if(pff)
-            {
-                ::fprintf(pff,"%d",(firstimage-1));
-                ::fclose(pff);
-            }
+	            //
+        	    // last image name
+	            //
+        	    pff = ::fopen("./.lastimage","wb");
+	            if(pff)
+        	    {
+                	::fprintf(pff,"%d",(firstimage-1));
+	                ::fclose(pff);
+        	    }
+	      }
         }
         savelapse = false;
         savemove = false;
