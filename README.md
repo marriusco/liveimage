@@ -1,6 +1,6 @@
 # LIGHTWEIGHT CAMERA MOTION DETECTION, 
 # TIME LAPSE and WEB CAM 
-# NOT FOR COMMERCIAL PRODUCTS AND COMPANIES. ONLY FOR HOMEUSERS!!! 
+
 
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 #### Acceessible direct from browser without additional web server. http://IP:PORT/?html
@@ -77,3 +77,7 @@ make a page
 #### Without Apache:
     - Write in browser address:
         - http://localhost:90000/?html
+
+### License: Only for Home users. Not for commercial products. Not for legally registerred companies.
+
+
