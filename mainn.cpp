@@ -100,8 +100,9 @@ static uint32_t gtc(void)
     return uint32_t(now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0);
 }
 
-static void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev, std::string filename, int firstimage, int maxfiles);
-static void calc_room(const std::string& filename, int& curentfile, int& maxfiles);
+static void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev, std::string pathname, int firstimage, int maxfiles);
+static void calc_room(const std::string& pathname, int& curentfile, int& maxfiles);
+
 
 int main(int nargs, char* vargs[])
 {
@@ -115,7 +116,6 @@ int main(int nargs, char* vargs[])
     LiConfig    conf("liveimage.conf");
     int         w,h;
     size_t      sz ;
-    std::string     filename = conf._glb.filename;
     v4ldevice   dev(conf._glb.device.c_str(),
                     conf._glb.w, conf._glb.h,
                     conf._glb.fps,
@@ -137,15 +137,13 @@ int main(int nargs, char* vargs[])
 
         outfilefmt*     ffmt = 0;
         ffmt = new jpeger(conf._glb.quality);
-        if(!filename.empty())
-            filename += ".jpg";
 
         int maxfiles=0;
         int firstimage=0;
 
-        if(!filename.empty())
-            calc_room(filename, firstimage, maxfiles);
-        capture(ffmt, ps, dev, filename, firstimage, maxfiles);
+        if(!conf._glb.pathname.empty())
+            calc_room(conf._glb.pathname, firstimage, maxfiles);
+        capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles);
 
         delete ps;
         dev.close();
@@ -154,26 +152,11 @@ int main(int nargs, char* vargs[])
 }
 
 
-void calc_room(const std::string& filename, int& firstimage, int& maximages)
+void calc_room(const std::string& pathname, int& firstimage, int& maximages)
 {
-    if(filename.find("%") != string::npos) /*saving sequencially*/
-    {
-        std::string path;
-        size_t      ls = filename.find_last_of('/');
-
-        if(ls != string::npos)
-        {
-            path = filename.substr(0, ls);
-        }
-        else
-        {
-            char spath[256]= {0};
-            ::getcwd(spath, sizeof(spath)-1);
-            path=spath;
-        }
         struct statvfs64 fiData;
 
-        if((statvfs64(path.c_str(), &fiData)) == 0 )
+        if((statvfs64(pathname.c_str(), &fiData)) == 0 )
         {
             uint32_t bytesfree = (uint32_t)(fiData.f_bfree * fiData.f_bsize);
             uint32_t imgsz = _imagesz(GCFG->_glb.w, GCFG->_glb.h);
@@ -196,12 +179,11 @@ void calc_room(const std::string& filename, int& firstimage, int& maximages)
         else
             firstimage = 0;
         std::cout << "Current image:" << firstimage << ", Roll up at:" << maximages << "\n";
-    }
 }
 
 
 void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
-             std::string filename, int firstimage, int maxfiles)
+             std::string pathname, int firstimage, int maxfiles)
 {
     uint32_t        jpgsz = 0;
     uint8_t*        pjpg = 0;
@@ -313,8 +295,9 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         //
         // SAVE FILES SEQUENCIALLY ON DRIVE
         //
-        if(savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture )
+        if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
         {
+            char fname[128];
             FILE* pff = ::fopen("/tmp/liveimage.jpg","wb");
             if(pff)
             {
@@ -322,51 +305,42 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 ::fclose(pff);
             }
 
-            char fname[PATH_MAX]= {0};
-            if(maxfiles)
+            const unsigned char         color[] = { 255,255,255 };
+            const unsigned char         bg[] = { 0,0, 128};
+            cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
+            char                        stamp[128];
+
+            ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
+            ++firstimage;
+            if(firstimage > maxfiles)  firstimage = 0;
+
+            std::cout << "saving: " << fname << "\n";
+            ::sprintf(stamp, "%s, %s: motion: %d", fname, str_time(), movepix);
+            cimage.draw_text(10, ih-17, stamp, color, bg, 1, 16);
+            cimage.save(fname);
+
+            if(GCFG->_glb.userpid > 0)
             {
-                ::sprintf(fname, filename.c_str(), firstimage++);
-                if(firstimage > maxfiles)
-                    firstimage = 0;
+                ::kill(GCFG->_glb.userpid, SIGUSR2);
+                std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
             }
-            else
+
+            //
+            // last image name
+            //
+            pff = ::fopen("./.lastimage","wb");
+            if(pff)
             {
-                ::sprintf(fname, "%s", filename.c_str());
+                ::fprintf(pff,"%d",(firstimage-1));
+                ::fclose(pff);
             }
-
-            do{
-                const unsigned char         color[] = { 255,255,255 };
-                const unsigned char         bg[] = { 0,0, 128};
-                cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
-                char                        stamp[128];
-
-                std::cout << "saving: " << fname << "\n";
-                ::sprintf(stamp, "%s, %s: motion: %d", fname, str_time(), movepix);
-                cimage.draw_text(10, ih-17, stamp, color, bg, 1, 16);
-                cimage.save(fname);
-                if(GCFG->_glb.userpid > 0)
-                {
-                    ::kill(GCFG->_glb.userpid, SIGUSR2);
-                    std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
-                }
-
-                //
-                // last image name
-                //
-                FILE* pff = ::fopen("./.lastimage","wb");
-                if(pff)
-                {
-                    ::fprintf(pff,"%d",(firstimage-1));
-                    ::fclose(pff);
-                }
-            }while(0);
-            savelapse = false;
-            savemove = false;
-            ticksave = now;
-            movepix = 0;
-            _sig_proc_capture = false;
-            if(GCFG->_glb.oneshot)
-                break;
         }
+        savelapse = false;
+        savemove = false;
+        ticksave = now;
+        movepix = 0;
+        _sig_proc_capture = false;
+        if(GCFG->_glb.oneshot)
+            break;
     }
 }

@@ -89,7 +89,7 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, device);
             BIND(_glb, sigcapt);
             BIND(_glb, port);
-            BIND(_glb, filename);
+            BIND(_glb, pathname);
             BIND(_glb, oneshot);
             BIND(_glb, quality);
             BIND(_glb, motion);

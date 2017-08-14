@@ -66,7 +66,7 @@ public:
         string  device;
         int     sigcapt;
         int     port;
-        string  filename;
+        string  pathname;
         int     oneshot;
         int     quality;
         string  motion;

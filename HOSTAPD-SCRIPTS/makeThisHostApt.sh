@@ -44,12 +44,14 @@ for f in $(ls -a *@*);do
 		[[ ! -f "$dest"-old ]] &&  sudo cp -fv "$dest" "$dest"-old
 		mkdir -p $(dirname $dest)
 		sudo cp -f /tmp/abc.txt $dest
+		chmod +x $dest
 	else
 		destok=$(echo $dest | sed "s/\$USER/$USER/")
 		echo "Installing as $USER: $f -> $destok"
 		[[ ! -f "$destok"-old ]] && cp "$dest" "$destok"-old
 		mkdir -p $(dirname $destok)
 		cp -f /tmp/abc.txt -fv $destok
+		chmod +x $destok
 	fi
 	rm /tmp/abc.txt
 done

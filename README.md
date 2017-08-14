@@ -25,9 +25,11 @@ cmake .
 make
 sudo adduser $USER video
 
-# create a folder images under liveimage
-# check liveimage.conf
+## create a folder ./snaps under liveimage
+## Check liveimage.conf, and set the pathfile to point to snaps
+
 ./liveimage
+
 ```
 
 ### Tested on
