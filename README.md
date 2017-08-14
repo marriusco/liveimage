@@ -67,17 +67,18 @@ make a page
     </center>
   </body>
 </html>
-
 ```
 
-#### No side apache/lighttpd server
 
+###  Direct Access:
+
+```javascript
+http://localhost:90000/?html
 ```
-=======
-#### Without Apache:
-    - Write in browser address:
-        - http://localhost:90000/?html
 
-### License: Only for Home users. Not for commercial products. Not for legally registerred companies.
-
+### License: 
+    - Only for Home users. 
+    - Not for commercial products, any parts of the code or entirely as s product.
+    
+   
 
