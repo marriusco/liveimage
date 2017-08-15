@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <link rel="stylesheet" href="snaps.css">
 	<script type="text/javascript" src="slick/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_dragscroll.js"></script>
+   
 </head>
 <body>
 
