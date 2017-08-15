@@ -1,0 +1,148 @@
+.page-wrapper, html, body {
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+}
+
+.top-bar {
+    margin-left:0px;
+    height:270px;
+    width:100%;
+    background:grey;
+    position:fixed;
+}
+
+
+tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{font-family:Arial, sans-serif;font-size:11px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg th{font-family:Arial, sans-serif;font-size:11px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg td{font-family:Arial, sans-serif;font-size:11px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;text-align: center;}
+.tgdat {font-family:Arial, sans-serif;font-size:11px;padding:10px 5px;border-style:solid;border-width:1px;
+        overflow:hidden;word-break:normal;text-align: center;cursor: pointer;background:#CCFFCC;
+}
+
+
+.bstimeslider {
+width:100%;
+height:90px;
+background:#ccc;
+position:relative;
+}
+
+
+.bstimeslider2 {
+width:100%;
+height:147px;
+top-margin:120px;
+background:#ccc;
+position:relative;
+color:grey;
+}
+
+
+.bktibx {
+float:left;
+margin:0 40px 0 0 ;
+font-size:18px;
+width:60px;
+display:block;
+background:#000;
+color:#fff;
+
+}
+
+#tslshow {
+    position:absolute;
+    left:0;
+    width:1200px;
+
+}
+
+#tslshow2 {
+    position:absolute;
+    left:0;
+    width:1200px;
+
+}
+
+#leftArrow {
+border:1px solid white;
+cursor: pointer;
+width:50px;
+height:100%;
+background:#444;
+position:absolute;
+left:0px;
+line-height: 90px;
+border:1px solid white;
+text-align: center;
+vertical-align: middle;
+}
+
+#rightArrow {
+border:1px solid white;
+cursor: pointer;
+line-height: 90px;
+width:50px;
+height:100%;
+background:#444;
+position:absolute;
+right:0px;
+text-align: center;
+vertical-align: middle;
+}
+
+#leftArrow2 {
+border:1px solid white;
+cursor: pointer;
+line-height: 145px;
+width:50px;
+height:100%;
+background:#444;
+position:absolute;
+left:0px;
+text-align: center;
+vertical-align: middle;
+}
+
+#rightArrow2 {
+border:1px solid white;
+cursor: pointer;
+line-height: 145px;
+text-align: center;
+width:50px;
+height:100%;
+background:#444;
+position:absolute;
+right:0px;
+vertical-align: middle;
+}
+
+.preview
+{
+    margin-top:271px;
+    align:left;
+}
+
+
+#viewContainer {
+width:92%;
+height:100%;
+background:#000000;
+position:absolute;
+left:52px;
+margin-left:0px;
+overflow:hidden;
+}
+
+
+#viewContainer2 {
+width:92%;
+height:100%;
+background:#222;
+position:absolute;
+left:52px;
+margin-left:0px;
+overflow:hidden;
+}
