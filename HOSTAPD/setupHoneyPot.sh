@@ -2,7 +2,8 @@
 
 [[ -z $1 ]] && echo "pass in the wlan" && exit
 WLAN=$1
-./resetip.sh $WLAN
+# ./resetip.sh $WLAN
+sudo iptables -F 
 sudo iptables -i $WLAN -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j A$
 sudo iptables -i $WLAN -A INPUT -p tcp --dport 80 -j ACCEPT
 sudo iptables -i $WLAN -A INPUT -p tcp --dport 8080 -j ACCEPT
