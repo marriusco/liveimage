@@ -21,7 +21,7 @@ ifconfig $WLAN up
 #### start liveimage in where it is ####
 ####                                #### 
 
-pushd /home/cocam/liveimage
+pushd /home/$USER/liveimage
  ./liveimage > /dev/null 2>&1  &
   sleep 1
 popd
