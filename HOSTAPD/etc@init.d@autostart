@@ -16,7 +16,7 @@ stop() {
 
 start() {
      #su -c ${PROCESS} -s /bin/bash $USER &
-     $PROCESS > /var/log/$PROCESS.log0 &
+     $PROCESS > /dev/null &
 }
 
 case "$1" in
