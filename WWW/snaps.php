@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="snaps.css">
-	<script type="text/javascript" src="slick/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="jq/jquery-1.11.1.min.js"></script>
    
 </head>
 <body>
@@ -36,9 +36,9 @@ echo "           <table class='tg'><tr>\n";
 
 $since="";
 $timgs = 1;
-$Date;
-$RDate;
-$Whenago;
+$Date=0;
+$RDate=0;
+$Whenago=0;
 $Groups=0;
 $Start = isset($_GET['s']) ? $_GET['s'] : 0;
 foreach($files as $date=>$file)
@@ -91,6 +91,7 @@ $Snaps = 0;
 foreach($files as $date=>$file)
 {
     if($date != $Start)
+
         continue;
     $datex = date('Y-m-d H:i:s', $date);
     if(is_array($file))
