@@ -101,7 +101,7 @@ static uint32_t gtc(void)
 }
 
 static void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev, std::string pathname, int firstimage, int maxfiles);
-static void calc_room(const std::string& pathname, int& curentfile, int& maxfiles);
+static void calc_room(const std::string& pathname, int& curentfile, uint64_t& maxfiles);
 
 
 int main(int nargs, char* vargs[])
@@ -138,12 +138,14 @@ int main(int nargs, char* vargs[])
         outfilefmt*     ffmt = 0;
         ffmt = new jpeger(conf._glb.quality);
 
-        int maxfiles=0;
+        uint64_t maxfiles=0;
+        uint32_t maxfiles2=0;
         int firstimage=0;
 
         if(!conf._glb.pathname.empty())
             calc_room(conf._glb.pathname, firstimage, maxfiles);
-        capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles);
+	maxfiles2=(uint32_t)maxfiles;
+        capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles2);
 
         delete ps;
         dev.close();
@@ -152,15 +154,16 @@ int main(int nargs, char* vargs[])
 }
 
 
-void calc_room(const std::string& pathname, int& firstimage, int& maximages)
+void calc_room(const std::string& pathname, int& firstimage, uint64_t& maximages)
 {
         struct statvfs64 fiData;
 
         if((statvfs64(pathname.c_str(), &fiData)) == 0 )
         {
-            uint32_t bytesfree = (uint32_t)(fiData.f_bfree * fiData.f_bsize);
-            uint32_t imgsz = _imagesz(GCFG->_glb.w, GCFG->_glb.h);
-            maximages = (uint32_t)(bytesfree/imgsz)/4;
+            uint64_t bytesfree = (uint64_t)(fiData.f_bfree * fiData.f_bsize);
+            uint64_t imgsz = _imagesz(GCFG->_glb.w, GCFG->_glb.h);
+            maximages = (uint64_t)(bytesfree/imgsz)/4;
+            std::cout << "disk free:" << bytesfree << "\n";
 
         }
         else
