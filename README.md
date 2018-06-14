@@ -6,6 +6,7 @@
 #### Acceessible direct from browser without additional web server. http://IP:PORT/?html
 ### Time lapse snapshots 
 ### Motion Detection
+### Time lapse dark stop
 ### Foliage wind elimination motion noise
 ### Life Stream
 
