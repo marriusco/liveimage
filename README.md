@@ -1,11 +1,12 @@
-# LIGHTWEIGHT CAMERA MOTION DETECTION, 
-# TIME LAPSE and WEB CAM 
+# LIGHTWEIGHT CAMERA MOTION DETECTION SUITABLE FOR R-PI, NANO-PI, C H I P AND SUCH, 
+# TIME LAPSE AND MOTION CAM 
 
 
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 #### Acceessible direct from browser without additional web server. http://IP:PORT/?html
 ### Time lapse snapshots 
 ### Motion Detection
+### Foliage wind elimination motion noise
 ### Life Stream
 
 
@@ -79,8 +80,13 @@ http://localhost:90000/?html
 ```
 
 ### License: 
-    - Only for Home users. 
+    - Only for Home users / home projects. 
     - Not for commercial products, any parts of the code or entirely as s product.
-    
+   
+### Foliage wind reject auto area
+
+
+![alt text](https://raw.githubusercontent.com/comarius/liveimage/master/images/motion1.png "foliage")
+   
    
 
