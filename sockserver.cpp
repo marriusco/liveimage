@@ -56,7 +56,7 @@ AGAIN:
                 goto AGAIN;
             return false;
         }
-        std::cout << "listening \n";
+        std::cout << "listening port"<< _port<<"\n";
         return true;
     }
     std::cout <<"create socket. Trying "<< (ntry+1) << " out of 10 " << DERR();
@@ -244,7 +244,7 @@ void sockserver::_send_page(imgclient* pc)
     char  html[256];
 
     int len = ::sprintf(image,
-            "<img width='320' src='http://%s:9000/?live' />",GCFG->_glb.httpip.c_str());
+            "<img width='640' src='http://%s:9000/?live' />",GCFG->_glb.httpip.c_str());
     len = ::sprintf(html,
                     "HTTP/1.1 200 OK\r\n"
                     "Content-length: %d\r\n"

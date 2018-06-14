@@ -56,29 +56,44 @@ public:
             timelapse=1500;
             format="jpg";
             signalin=0;
+            motiontrail=3;
             userpid=0;
             motionsnap=200;
+            motionrect=1;   // show motion rect
+            windcomp=10;    // wind comp repetative in within 10%
+            windcount=10;
+            windcheck=1000;
+            motiondiff=24;
             savelapse=200;
+            motiondiff=24;
+            motionw=256;
             httpport=0;
         }
         int     darklapse;
         int     darkmotion;
         string  device;
         int     sigcapt;
+        int     motiontrail;
         int     port;
         string  pathname;
+        int     motiondiff;
         int     oneshot;
         int     quality;
         string  motion;
         int     motionnoise;
         int     fps;
         string  imagesize;
+        int     motionrect;   // show motion rect
+        int     windcomp;    // wind comp repetative in within 10%
+        int     windcount;
+        int     windcheck;
         int     timelapse; //ms
         string  format;
         int     signalin;
         int     userpid;
         int     w;
         int     h;
+        int     motionw;
         int     imotion[2];
         uint32_t     motionsnap;
         uint32_t     savelapse;
@@ -91,5 +106,15 @@ public:
 //-----------------------------------------------------------------------------------
 extern LiConfig* GCFG;
 extern SADDR_46  fromstringip(const std::string& s);
+
+
+inline size_t gtc(void)
+{
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now))
+        return 0;
+    return size_t(now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0);
+}
+
 
 #endif //_CONFIGPRX_H_

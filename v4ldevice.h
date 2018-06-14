@@ -64,6 +64,7 @@ public:
     int  geth()const{return _mh;}
     uint8_t*  motionbuf()const{return _motionbufs[2];}
     uint32_t darkav()const{return _dark;}
+
 private:
     int       _w;
     int       _h;
@@ -77,6 +78,11 @@ private:
     uint32_t  _dark;
     int       _nr;
     int       _mmeter;
+    size_t    _windtime;
+    int       _pxs,_pys,_pxe,_pye;
+    int       _rxs,_rys,_rxe,_rye;
+    int       _checkcount;
+    int       _checkpass;
 };
 
 

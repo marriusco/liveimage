@@ -19,6 +19,8 @@
 
 
 #define LIVEIMAGE_VERSION "1.0.0"
+#define cimg_display 0
+#define cimg_use_jpeg
 
 #include <stdint.h>
 #include <unistd.h>
@@ -92,13 +94,6 @@ uint32_t _imagesz(int x, int y)
     return 1082915;
 }
 
-static uint32_t gtc(void)
-{
-    struct timespec now;
-    if (clock_gettime(CLOCK_MONOTONIC, &now))
-        return 0;
-    return uint32_t(now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0);
-}
 
 static void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev, std::string pathname, int firstimage, int maxfiles);
 static void calc_room(const std::string& pathname, int& curentfile, uint64_t& maxfiles);
@@ -255,7 +250,7 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 {
                     std::cout << "move pix=" << movepix << "\n";
                     savemove = true;
-                    movementintertia = 4;
+                    movementintertia = GCFG->_glb.motiontrail;
                 }
                 else
                 {

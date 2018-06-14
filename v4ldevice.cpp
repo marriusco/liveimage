@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "v4ldevice.h"
+#include "liconfig.h"
 
 #define VIDEO_BUFFS 2
 #define MOTION_SZ   64
@@ -36,10 +37,13 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, i
     _fps = fps;
     _lasttime = time(0);
     _motionlow = motionlow;
+    if(_motionlow==0)_motionlow=1;
     _motionhi = motionhi;
+    if(_motionhi==0)_motionhi=8000;
     _pmt = 0;
     _moved = 0;
     _nr = nr;
+
 }
 
 v4ldevice::~v4ldevice()
@@ -389,14 +393,16 @@ const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
 
 mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
 {
-    _mw = MOTION_SZ;
+    _mw = GCFG->_glb.motionw;
+    if(_mw>=w)
+        _mw=w/2;
+    else if(_mw<8)
+        _mw=8;
     _mh = (_mw * _h) / _w;
-
     size_t msz = (_mw) * (_mh);
     _motionbufs[0] = new uint8_t[msz];
     _motionbufs[1] = new uint8_t[msz];
     _motionbufs[2] = new uint8_t[msz];
-
     memset(_motionbufs[0],0,msz);
     memset(_motionbufs[1],0,msz);
     memset(_motionbufs[2],0,msz);
@@ -404,6 +410,10 @@ mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
     _motionsz = msz;
     _moves=0;
     _mmeter = 0;
+    _windtime=0;
+    _rxe=0;
+    _pxe=0;
+    _pxs=0;
 }
 
 mmotion::~mmotion()
@@ -429,31 +439,128 @@ int mmotion::has_moved(uint8_t* fmt420)
     uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
     uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
     int               pixels = 0;
+    int               mdiff = GCFG->_glb.motiondiff*2.55;
+    int               xs = _mw;
+    int               ys = _mh;
+    int               xe = 0;
+    int               ye = 0;
+    uint8_t           Y,YP ;
+    int               bwind = GCFG->_glb.windcomp;
+    int               mrect = GCFG->_glb.motionrect;
 
-    _dark=0;
+    if(mdiff<1)mdiff=8;
+    _dark  = 0;
     _moves = 0;
-    for (int y= 0; y <_mh; y++)//height
+    for (int y= 0; y <_mh; ++y)//height
     {
-        for (int x = 0; x < _mw; x++)//width
+        for (int x = 0; x < _mw; ++x)//width
         {
-            uint8_t Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent PIXEL
+            if(_rxe && bwind)
+            {
+                //ignore this area
+                if(x>_rxs && y>_rys && x < _rxe && y<_rye)
+                {
+                    *(pSeen + (y * _mw)+x) = (uint8_t)64;
+                    continue;
+                }
+            }
+
+            Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent PIXEL
 
             // compute darklapse of the image
             _dark += uint32_t(Y);
             Y /= _nr; //reduce noise
             Y *= _nr;
-
             *(prowcur + (y * _mw)+x) = Y;               // build new video buffer
-
-            uint8_t YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
+            YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
             int diff = Y - YP;
             if(diff<0)
-                diff=0;
-            if(diff>24){
+            {
+                diff=0; //black no move
+            }
+            else if(diff>mdiff){
+                if(bwind || mrect){
+                    xs=std::min(xs,x);
+                    ys=std::min(ys,y);
+                    ye=std::max(ye,y);
+                    xe=std::max(xe,x);
+                }
+                diff=255; //move
                 ++_moves;
             }
             *(pSeen + (y * _mw)+x) = (uint8_t)diff;      // what we see
             ++pixels;
+        }
+    }
+
+    if(xs>0 && xs<xe)
+    {
+        if(bwind)
+        {
+            if(_windtime==0)
+            {
+                _windtime=gtc();
+                _checkcount = GCFG->_glb.windcount;
+                _checkpass = 0;
+                _pxs = xs;
+                _pys = ys;
+                _pxe = xe;
+                _pye = ye;
+
+            }
+            else if(gtc()-_windtime>GCFG->_glb.windcheck)
+            {
+                if(--_checkcount)
+                {
+                    int percrect = GCFG->_glb.windcomp;
+                    int dxs = (abs(_pxs-xs)*100) / _mw;
+                    int dxe = (abs(_pxe-xe)*100) / _mw;
+                    int dys = (abs(_pys-xe)*100) / _mw;
+                    int dye = (abs(_pye-xe)*100) / _mw;
+                    if(dys>percrect || dye>percrect || dxs>percrect || dxe>percrect)
+                    {
+                        ++_checkpass;
+                    }
+                }
+                else
+                {
+                    if(_checkpass > GCFG->_glb.windcount/2)
+                    {
+                        // was wind, add a reject rect here.
+                        std::cout << "-------------adding reject rect \r\n";
+                        _rxs=_pxs;
+                        _rys=_pys;
+                        _rxe=_pxe;
+                        _rye=_pye;
+                        _checkpass = 0;
+                    }
+                    else
+                    {
+                        _rxe=0;
+                        std::cout << "------------removeing reject rect \r\n";
+                        //remove the reject rect
+                    }
+                    _checkcount = GCFG->_glb.windcount;
+                }
+                _windtime=gtc();//check is in witin _checkcount
+                _pxs = xs;_pys = ys;_pxe = xe;_pye = ye;
+            }
+        }
+
+
+        if(mrect)
+        {
+            for (int y= ys; y <ye; ++y)//height
+            {
+                *(pSeen + (y * _mw)+xs) = (uint8_t)255;      // what we see
+                *(pSeen + (y * _mw)+xe) = (uint8_t)255;      // what we see
+            }
+            for (int x = xs; x < xe; ++x)//width
+            {
+                *(pSeen + (ys * _mw)+x) = (uint8_t)255;      // what we see
+                *(pSeen + (ye * _mw)+x) = (uint8_t)255;      // what we see
+            }
+
         }
     }
 
@@ -477,8 +584,9 @@ int mmotion::has_moved(uint8_t* fmt420)
         }
     }
     _dark /= pixels;
-    assert(pixels <= _motionsz);
+    // assert(pixels <= _motionsz);
     _motionindex = !_motionindex;
+
     return _moves;
 }
 
