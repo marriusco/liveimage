@@ -305,6 +305,8 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 ::fwrite(pjpg,1,jpgsz,pff);
                 ::fclose(pff);
 	            cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
+                if(GCFG->_glb.flip)
+                    cimage.rotate(180);
         	    ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
 	            ++firstimage;
         	    if(firstimage > maxfiles)  firstimage = 0;

@@ -66,12 +66,14 @@ public:
             motiondiff=24;
             savelapse=200;
             motiondiff=24;
+            flip=0;
             motionw=256;
             httpport=0;
         }
         int     darklapse;
         int     darkmotion;
         string  device;
+        int     flip;
         int     sigcapt;
         int     motiontrail;
         int     port;

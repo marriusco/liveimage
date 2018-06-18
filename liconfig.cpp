@@ -87,6 +87,7 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, darklapse);
             BIND(_glb, darkmotion);
             BIND(_glb, device);
+            BIND(_glb, flip);
             BIND(_glb, sigcapt);
             BIND(_glb, port);
             BIND(_glb, pathname);

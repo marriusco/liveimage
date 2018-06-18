@@ -98,13 +98,15 @@ foreach($files as $date=>$file)
     {
         foreach($file as $fil)
         {
-            echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
+            echo "<td class='tg-031e'><img class='clickm' src='_resz.php?f=./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
+//            echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
             ++$Snaps;
         }
     }
     else
     {
-        echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
+//        echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
+        echo "<td class='tg-031e'><img class='clickm' src='_resz.php?f=./snaps/{$fil}' width=140;/><br />{$datex}</td>\n";
         ++$Snaps;
     }
 }
