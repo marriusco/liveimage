@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <link rel="stylesheet" href="snaps.css">
     <script type="text/javascript" src="jq/jquery-1.11.1.min.js"></script>
-   
+
 </head>
 <body>
 
@@ -188,7 +188,8 @@ $(document).ready(function(){
 
         $('.clickm').click(function(){
             //$('#out').html("X" + $(this).attr("src"));
-            $("#detail").attr("src", $(this).attr("src"));
+           var src=$(this).attr("src").split("=");
+            $("#detail").attr("src", src[1]);
         });
 
     }

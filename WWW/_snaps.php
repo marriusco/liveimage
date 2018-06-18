@@ -29,13 +29,13 @@ foreach($files as $date=>$file)
     {
         foreach($file as $fil)
         {
-            echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=130;/><br />{$datex}</td>";
+            echo "<td class='tg-031e'><img class='clickm' src='_resz.php?f=./snaps/{$fil}' width=130;/><br />{$datex}</td>";
             ++$Snaps;
         }
     }
     else
     {
-        echo "<td class='tg-031e'><img class='clickm' src='./snaps/{$fil}' width=130;/><br />{$datex}</td>";
+        echo "<td class='tg-031e'><img class='clickm' src='_resz.php?f=./snaps/{$fil}' width=130;/><br />{$datex}</td>";
         ++$Snaps;
     }
 }
