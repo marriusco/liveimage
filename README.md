@@ -39,6 +39,7 @@ apt-get install php5-gd php-cgi php-gd
 git clone https://github.com/comarius/liveimage
 sudo apt-get install libv4l-dev
 sudo apt-get install libjpeg-dev
+sudo apt-get install libpng-dev
 cd liveimage
 cmake .
 make
