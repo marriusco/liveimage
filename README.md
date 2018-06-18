@@ -25,6 +25,16 @@ https://youtu.be/gebbErEJj1A
 
 ### Build
 
+#### Web server (optional)
+```console
+
+apt-get install lighttpd
+apt-get install php5
+apt-get install php5-gd php-cgi php-gd
+```
+
+
+
 ```javascript
 git clone https://github.com/comarius/liveimage
 sudo apt-get install libv4l-dev
