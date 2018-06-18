@@ -31,6 +31,9 @@ https://youtu.be/gebbErEJj1A
 apt-get install lighttpd
 apt-get install php5
 apt-get install php5-gd php-cgi php-gd
+  sudo lighttpd-enable-mod fastcgi 
+  sudo lighttpd-enable-mod fastcgi-php
+  sudo  /etc/init.d/lighttpd force-reload 
 ```
 
 
