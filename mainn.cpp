@@ -205,12 +205,12 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
             ps->spin();
         pb422 = dev.read(iw, ih, sz,fatal);
         if(pb422 == 0){
-            ::usleep(100000);
-	   if(fatal){
+            if(fatal){
                 std::cout << "fatal error io. exiting \n";
-		__alive=false;
-	   } 
-           continue;
+                __alive=false; //let the service script handle it
+            }
+            ::sleep(1);
+            continue;
         }
         jpgsz = ffmt->convert420(pb422, iw, ih, sz, GCFG->_glb.quality, &pjpg);
         if(ps && ps->has_clients())

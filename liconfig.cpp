@@ -104,6 +104,7 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, motionsnap);
             BIND(_glb, motionrect);
             BIND(_glb, windcomp);
+            BIND(_glb, rectacum);
             BIND(_glb, windcheck);
             BIND(_glb, windcount);
             BIND(_glb, motiondiff);

@@ -61,6 +61,7 @@ public:
             motionsnap=200;
             motionrect=1;   // show motion rect
             windcomp=10;    // wind comp repetative in within 10%
+            rectacum=12;    // wind comp repetative in within 10%
             windcount=10;
             windcheck=1000;
             motiondiff=24;
@@ -76,6 +77,7 @@ public:
         int     flip;
         int     sigcapt;
         int     motiontrail;
+        int     rectacum;
         int     port;
         string  pathname;
         int     motiondiff;

@@ -84,6 +84,7 @@ private:
     int       _rxs,_rys,_rxe,_rye;
     int       _checkcount;
     int       _checkpass;
+    int       _accumrect;
 };
 
 

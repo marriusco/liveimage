@@ -441,8 +441,15 @@ mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
     _moves=0;
     _mmeter = 0;
     _windtime=0;
+
+    _checkpass = 0;
+    _accumrect=GCFG->_glb.rectacum;
     _rxe=0;
     _pxe=0;
+    _pxs=0;
+    _pye=0;
+    _pxe=0;
+    _pys=0;
     _pxs=0;
 }
 
@@ -481,6 +488,14 @@ int mmotion::has_moved(uint8_t* fmt420)
     if(mdiff<1)mdiff=8;
     _dark  = 0;
     _moves = 0;
+
+    if(--_accumrect > 0)
+    {
+        xs=_pxs;
+        xe=_pxe;
+        ys=_pys;
+        ye=_pye;
+    }
     for (int y= 0; y <_mh; ++y)//height
     {
         for (int x = 0; x < _mw; ++x)//width
@@ -504,12 +519,14 @@ int mmotion::has_moved(uint8_t* fmt420)
             *(prowcur + (y * _mw)+x) = Y;               // build new video buffer
             YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
             int diff = Y - YP;
-            if(diff<0)
+            if(diff<mdiff)
             {
                 diff=0; //black no move
             }
-            else if(diff>mdiff){
-                if(bwind || mrect){
+            else if(diff>mdiff)
+            {
+                if(bwind || mrect)
+                {
                     xs=std::min(xs,x);
                     ys=std::min(ys,y);
                     ye=std::max(ye,y);
@@ -529,35 +546,40 @@ int mmotion::has_moved(uint8_t* fmt420)
         {
             if(_windtime==0)
             {
-                _windtime=gtc();
+                _windtime   = gtc();
                 _checkcount = GCFG->_glb.windcount;
-                _checkpass = 0;
+                _checkpass  = 0;
                 _pxs = xs;
                 _pys = ys;
                 _pxe = xe;
                 _pye = ye;
-
             }
             else if(gtc()-_windtime>GCFG->_glb.windcheck)
             {
                 if(--_checkcount)
                 {
+                    std::cout << "checking "<<_checkcount <<", " << int(gtc()-_windtime) <<", " <<_checkpass<<"\r\n";
                     int percrect = GCFG->_glb.windcomp;
-                    int dxs = (abs(_pxs-xs)*100) / _mw;
-                    int dxe = (abs(_pxe-xe)*100) / _mw;
-                    int dys = (abs(_pys-xe)*100) / _mw;
-                    int dye = (abs(_pye-xe)*100) / _mw;
-                    if(dys>percrect || dye>percrect || dxs>percrect || dxe>percrect)
+                    int dxs = (abs(_pxs - xs)*100) / _mw;
+                    int dxe = (abs(_pxe - xe)*100) / _mw;
+                    int dys = (abs(_pys - ys)*100) / _mh;
+                    int dye = (abs(_pye - ye)*100) / _mh;
+
+                    std::cout << "percs " <<dxs <<", "<<dxe <<", "<<dys <<", "<<dye <<"\r\n";
+
+                    if(dys<percrect && dye<percrect && dxs<percrect && dxe<percrect)
                     {
                         ++_checkpass;
                     }
+                    _pxs = xs;
+                    _pys = ys;
+                    _pxe = xe;
+                    _pye = ye;
                 }
                 else
                 {
-                    if(_checkpass > GCFG->_glb.windcount/2)
+                    if(_checkpass > 3)
                     {
-                        // was wind, add a reject rect here.
-                        std::cout << "-------------adding reject rect \r\n";
                         _rxs=_pxs;
                         _rys=_pys;
                         _rxe=_pxe;
@@ -566,29 +588,31 @@ int mmotion::has_moved(uint8_t* fmt420)
                     }
                     else
                     {
-                        _rxe=0;
-                        std::cout << "------------removeing reject rect \r\n";
-                        //remove the reject rect
+                        _rxe = 0;
+                        _pxs = 0;
+                        _pys = 0;
+                        _pxe = 0;
+                        _pye = 0;
                     }
                     _checkcount = GCFG->_glb.windcount;
                 }
                 _windtime=gtc();//check is in witin _checkcount
-                _pxs = xs;_pys = ys;_pxe = xe;_pye = ye;
+
             }
         }
 
 
         if(mrect)
         {
-            for (int y= ys; y <ye; ++y)//height
+            for (int y= _pys; y <_pye; ++y)//height
             {
-                *(pSeen + (y * _mw)+xs) = (uint8_t)255;      // what we see
-                *(pSeen + (y * _mw)+xe) = (uint8_t)255;      // what we see
+                *(pSeen + (y * _mw)+_pxs) = (uint8_t)255;      // what we see
+                *(pSeen + (y * _mw)+_pxe) = (uint8_t)255;      // what we see
             }
-            for (int x = xs; x < xe; ++x)//width
+            for (int x = _pxs; x < _pxe; ++x)//width
             {
-                *(pSeen + (ys * _mw)+x) = (uint8_t)255;      // what we see
-                *(pSeen + (ye * _mw)+x) = (uint8_t)255;      // what we see
+                *(pSeen + (_pys * _mw)+x) = (uint8_t)255;      // what we see
+                *(pSeen + (_pye * _mw)+x) = (uint8_t)255;      // what we see
             }
 
         }
@@ -616,6 +640,8 @@ int mmotion::has_moved(uint8_t* fmt420)
     _dark /= pixels;
     // assert(pixels <= _motionsz);
     _motionindex = !_motionindex;
+    if(_accumrect==0)
+        _accumrect=GCFG->_glb.rectacum;
 
     return _moves;
 }
