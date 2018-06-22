@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string>
 #include <vector>
 #include "os.h"
 
@@ -94,7 +95,7 @@ public:
 
     bool open();
     void close();
-    const uint8_t* read(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
+    const uint8_t* read(int& w, int& h, size_t& sz, bool& fatal); // ret 0 fatal, 1 aquired, -1 continue
     const uint8_t* getm(int& w, int& h, size_t& sz); // ret 0 fatal, 1 aquired, -1 continue
     int _proc_buff(const void* p, struct timeval& t);
     int movement()const{return _moved;}
@@ -103,7 +104,7 @@ private:
     int _ioctl(int request, void* argp);
 
 private:
-    char      _sdevice[64];
+    std::string  _sdevice;
     int       _device;
     int       _xy[2];
     int       _fps;
@@ -117,7 +118,7 @@ private:
     mmotion*  _pmt;
     int       _moved;
     int       _nr;
-
+    bool     _fatal;
 };
 
 #endif // V4LDEVICE_H

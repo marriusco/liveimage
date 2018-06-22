@@ -30,7 +30,7 @@
 
 v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi, int nr)
 {
-    ::strcpy(_sdevice, device);
+    _sdevice = device;
     _curbuffer = 0;
     _xy[0]=x;
     _xy[1]=y;
@@ -43,7 +43,7 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, i
     _pmt = 0;
     _moved = 0;
     _nr = nr;
-
+    _fatal = false;
 }
 
 v4ldevice::~v4ldevice()
@@ -53,18 +53,44 @@ v4ldevice::~v4ldevice()
 
 bool v4ldevice::open()
 {
-    if (::access(_sdevice,0)!=0)
+    size_t diez = _sdevice.find('*');
+    if(diez != std::string::npos)
     {
-        std::cout << "Cannot open "<< _sdevice << " " <<  errno  << "\n";
-        return false;
+	std::string sdev = _sdevice.substr(0,diez);
+	for(int i=0; i < 8; i++)
+	{
+	    std::string check = sdev + std::to_string(i);
+            std::cout << "opening: " << check << "\n";
+	    if (::access(check.c_str(),0)!=0)
+	    {
+        	std::cout << "No Device:  "<< check << ", " <<  strerror(errno)  << "\n";
+		continue;
+    	    }
+    	    _device = v4l2_open(check.c_str(), O_RDWR | O_NONBLOCK, 0);
+	    if (-1 == _device)
+    	    {
+                 std::cout << "Cannot open " << check << ", " <<  strerror(errno)  << "\n";
+		continue;
+            }
+            _sdevice=check;
+            break;
+	}
     }
+    else
+    {
+        if (::access(_sdevice.c_str(),0)!=0)
+        {
+            std::cout << "No Device: "<< _sdevice << " " <<  errno  << "\n";
+            return false;
+        }
+        _device = v4l2_open(_sdevice.c_str(), O_RDWR | O_NONBLOCK, 0);
 
-    _device = v4l2_open(_sdevice, O_RDWR | O_NONBLOCK, 0);
+    }
 
     if (-1 == _device)
     {
         std::cout << "Cannot open " << _sdevice << " " <<  errno  << "\n";
-        return false;
+         return false;
     }
 
     struct v4l2_capability  caps;// = {0};
@@ -296,7 +322,8 @@ void v4ldevice::close()
         int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
         _ioctl(VIDIOC_STREAMOFF, &type);
-        ::v4l2_close(_device);
+	if(!_fatal)
+           ::v4l2_close(_device);
     }
     _device = 0;
 }
@@ -311,7 +338,7 @@ int v4ldevice::_ioctl(int request, void* argp)
     return r;
 }
 
-const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz)
+const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
 {
     fd_set fds;
     struct timeval tv;
@@ -326,8 +353,8 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz)
     int r = select(_device + 1, &fds, NULL, NULL, &tv);
     if(r==-1)
     {
-        if (EINTR == errno)
-            return 0;
+	fatal=true;
+	_fatal=true;
         return 0; // fatal
     }
     if(r == 0 || !FD_ISSET(_device, &fds))
@@ -340,10 +367,13 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz)
     buf.memory = _buffers[_curbuffer].mmap;
     if(-1==_ioctl(VIDIOC_DQBUF, &buf))
     {
-        if(errno==EAGAIN)
-            return 0;
+        if(errno==EAGAIN){
+	    return 0;
+	}
         if(errno!=0 && errno != EIO)
         {
+	    fatal=true;
+	    _fatal=true;
             return 0;
         }
     }

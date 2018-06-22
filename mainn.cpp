@@ -197,15 +197,20 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
     size_t          sz = 0;
     int             iw = GCFG->_glb.w;
     int             ih = GCFG->_glb.h;
+    bool            fatal=false;
 
     while(__alive  && 0 == ::usleep(20000))
     {
         if(ps)
             ps->spin();
-        pb422 = dev.read(iw, ih, sz);
+        pb422 = dev.read(iw, ih, sz,fatal);
         if(pb422 == 0){
             ::usleep(100000);
-            continue;
+	   if(fatal){
+                std::cout << "fatal error io. exiting \n";
+		__alive=false;
+	   } 
+           continue;
         }
         jpgsz = ffmt->convert420(pb422, iw, ih, sz, GCFG->_glb.quality, &pjpg);
         if(ps && ps->has_clients())
