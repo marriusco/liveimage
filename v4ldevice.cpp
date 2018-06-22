@@ -542,6 +542,11 @@ int mmotion::has_moved(uint8_t* fmt420)
 
     if(xs>0 && xs<xe)
     {
+        if( _moves < GCFG->_glb.imotion[0] || _moves > GCFG->_glb.imotion[1])
+        {
+            bwind=false;
+        }
+
         if(bwind)
         {
             if(_windtime==0)
@@ -600,6 +605,13 @@ int mmotion::has_moved(uint8_t* fmt420)
 
             }
         }
+        else
+        {
+            _pxs = xs;
+            _pys = ys;
+            _pxe = xe;
+            _pye = ye;
+        }
 
 
         if(mrect)
@@ -618,7 +630,7 @@ int mmotion::has_moved(uint8_t* fmt420)
         }
     }
 
-    // show movement on left
+    // show movement percentage on left as bar
     int percentage = (float(_moves) / float(pixels)) * float(_mh);
     if(percentage > _mmeter)
         _mmeter = percentage;
@@ -637,8 +649,8 @@ int mmotion::has_moved(uint8_t* fmt420)
             --y;
         }
     }
+
     _dark /= pixels;
-    // assert(pixels <= _motionsz);
     _motionindex = !_motionindex;
     if(_accumrect==0)
         _accumrect=GCFG->_glb.rectacum;
