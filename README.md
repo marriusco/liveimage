@@ -43,6 +43,7 @@ git clone https://github.com/comarius/liveimage
 sudo apt-get install libv4l-dev
 sudo apt-get install libjpeg-dev
 sudo apt-get install libpng-dev
+sudo apt-get install v4l-utils  (optional to adjust luminosity)
 cd liveimage
 cmake .
 make
