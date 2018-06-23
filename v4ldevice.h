@@ -85,6 +85,7 @@ private:
     int       _checkcount;
     int       _checkpass;
     int       _accumrect;
+    int       _indicapt;
 };
 
 

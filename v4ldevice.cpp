@@ -44,6 +44,10 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, i
     _moved = 0;
     _nr = nr;
     _fatal = false;
+    for (int i = 0; i < MAX_BUFFERS; ++i)
+    {
+        _buffers[i].start=0;
+    }
 }
 
 v4ldevice::~v4ldevice()
@@ -304,6 +308,7 @@ void v4ldevice::close()
     {
         _pmt->stop_thread();
         delete _pmt;
+	_pmt=0;
     }
     if(_device>0)
     {
@@ -441,7 +446,7 @@ mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
     _moves=0;
     _mmeter = 0;
     _windtime=0;
-
+    _indicapt = 0;
     _checkpass = 0;
     _accumrect=GCFG->_glb.rectacum;
     _rxe=0;
@@ -618,13 +623,13 @@ int mmotion::has_moved(uint8_t* fmt420)
         {
             for (int y= _pys; y <_pye; ++y)//height
             {
-                *(pSeen + (y * _mw)+_pxs) = (uint8_t)255;      // what we see
-                *(pSeen + (y * _mw)+_pxe) = (uint8_t)255;      // what we see
+                *(pSeen + (y * _mw)+_pxs) = (uint8_t)255;
+                *(pSeen + (y * _mw)+_pxe) = (uint8_t)255;
             }
             for (int x = _pxs; x < _pxe; ++x)//width
             {
-                *(pSeen + (_pys * _mw)+x) = (uint8_t)255;      // what we see
-                *(pSeen + (_pye * _mw)+x) = (uint8_t)255;      // what we see
+                *(pSeen + (_pys * _mw)+x) = (uint8_t)255;
+                *(pSeen + (_pye * _mw)+x) = (uint8_t)255;
             }
 
         }
@@ -642,12 +647,24 @@ int mmotion::has_moved(uint8_t* fmt420)
         int x = 0;
         while(y)
         {
-            if(_mmeter < y)
-                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)0;
-            else
-                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)255;
+            *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)255;
             --y;
         }
+    }
+    if( _moves > GCFG->_glb.imotion[0] && _moves < GCFG->_glb.imotion[1])
+    {
+	_indicapt = _mh;
+    }
+    else
+    {
+        if(_indicapt>0)--_indicapt;
+    }
+    int y=_indicapt;
+    int x=_mw-1;
+    while(y)
+    {
+        *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)255;
+        --y;
     }
 
     _dark /= pixels;
