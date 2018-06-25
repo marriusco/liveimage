@@ -102,11 +102,6 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, signalin);
             BIND(_glb, userpid);
             BIND(_glb, motionsnap);
-            BIND(_glb, motionrect);
-            BIND(_glb, windcomp);
-            BIND(_glb, rectacum);
-            BIND(_glb, windcheck);
-            BIND(_glb, windcount);
             BIND(_glb, motiondiff);
             BIND(_glb, motiontrail);
             BIND(_glb, motionw);
@@ -114,6 +109,10 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, savelapse);
             BIND(_glb, httpport);
             BIND(_glb, httpip);
+
+            BIND(_glb, windcomp);
+            BIND(_glb, windcheck);
+            BIND(_glb, windaccum);
         }
     }
     catch(int done) {}
