@@ -43,6 +43,7 @@
 #include <inttypes.h>
 #include <string>
 #include <vector>
+#include "motion.h"
 #include "os.h"
 
 #define MAX_BUFFERS 4
@@ -53,44 +54,11 @@ struct videobuffer {
     int      mmap;
 };
 
-class v4ldevice;
-class mmotion : public OsThread
-{
-public:
-    mmotion(int w, int h, int nr);
-    ~mmotion();
-    void thread_main();
-    int has_moved(uint8_t* p);
-    int  getw()const{return _mw;}
-    int  geth()const{return _mh;}
-    uint8_t*  motionbuf()const{return _motionbufs[2];}
-    uint32_t darkav()const{return _dark;}
-
-private:
-    int       _w;
-    int       _h;
-    int       _mw;
-    int       _mh;
-    uint8_t*  _motionbufs[3];
-    int       _motionindex;
-    uint32_t  _motionsz;
-    mutex     _m;
-    int       _moves;
-    uint32_t  _dark;
-    int       _nr;
-    int       _mmeter;
-    size_t    _windtime;
-    int       _pxs,_pys,_pxe,_pye;
-    int       _rxs,_rys,_rxe,_rye;
-    int       _checkcount;
-    int       _checkpass;
-    int       _accumrect;
-};
-
 
 class v4ldevice
 {
 public:
+
     v4ldevice(const char* device, int x, int y, int fps, int motionlow, int motionhi, int nr=4);
     virtual ~v4ldevice();
 

@@ -59,17 +59,16 @@ public:
             motiontrail=3;
             userpid=0;
             motionsnap=200;
-            motionrect=1;   // show motion rect
-            windcomp=10;    // wind comp repetative in within 10%
-            rectacum=12;    // wind comp repetative in within 10%
-            windcount=10;
-            windcheck=1000;
+            windaccum=8;    // wind comp repetative in within 10%
             motiondiff=24;
             savelapse=200;
             motiondiff=24;
             flip=0;
             motionw=256;
             httpport=0;
+
+            windcomp=30;
+            windcheck=8;
         }
         int     darklapse;
         int     darkmotion;
@@ -77,7 +76,6 @@ public:
         int     flip;
         int     sigcapt;
         int     motiontrail;
-        int     rectacum;
         int     port;
         string  pathname;
         int     motiondiff;
@@ -87,10 +85,6 @@ public:
         int     motionnoise;
         int     fps;
         string  imagesize;
-        int     motionrect;   // show motion rect
-        int     windcomp;    // wind comp repetative in within 10%
-        int     windcount;
-        int     windcheck;
         int     timelapse; //ms
         string  format;
         int     signalin;
@@ -103,6 +97,9 @@ public:
         uint32_t     savelapse;
         int     httpport;
         string  httpip;
+        int     windcomp;
+        int     windcheck;
+        int     windaccum;
     }_glb;
 
 };

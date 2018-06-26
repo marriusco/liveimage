@@ -44,6 +44,8 @@ v4ldevice::v4ldevice(const char* device, int x, int y, int fps, int motionlow, i
     _moved = 0;
     _nr = nr;
     _fatal = false;
+    for (int i = 0; i < MAX_BUFFERS; ++i)
+        _buffers[i].start=0;
 }
 
 v4ldevice::~v4ldevice()
@@ -56,25 +58,25 @@ bool v4ldevice::open()
     size_t diez = _sdevice.find('*');
     if(diez != std::string::npos)
     {
-	std::string sdev = _sdevice.substr(0,diez);
-	for(int i=0; i < 8; i++)
-	{
-	    std::string check = sdev + std::to_string(i);
+        std::string sdev = _sdevice.substr(0,diez);
+        for(int i=0; i < 8; i++)
+        {
+            std::string check = sdev + std::to_string(i);
             std::cout << "opening: " << check << "\n";
-	    if (::access(check.c_str(),0)!=0)
-	    {
-        	std::cout << "No Device:  "<< check << ", " <<  strerror(errno)  << "\n";
-		continue;
-    	    }
-    	    _device = v4l2_open(check.c_str(), O_RDWR | O_NONBLOCK, 0);
-	    if (-1 == _device)
-    	    {
-                 std::cout << "Cannot open " << check << ", " <<  strerror(errno)  << "\n";
-		continue;
+            if (::access(check.c_str(),0)!=0)
+            {
+                std::cout << "No Device:  "<< check << ", " <<  strerror(errno)  << "\n";
+                continue;
+            }
+            _device = v4l2_open(check.c_str(), O_RDWR | O_NONBLOCK, 0);
+            if (-1 == _device)
+            {
+                std::cout << "Cannot open " << check << ", " <<  strerror(errno)  << "\n";
+                continue;
             }
             _sdevice=check;
             break;
-	}
+        }
     }
     else
     {
@@ -90,7 +92,7 @@ bool v4ldevice::open()
     if (-1 == _device)
     {
         std::cout << "Cannot open " << _sdevice << " " <<  errno  << "\n";
-         return false;
+        return false;
     }
 
     struct v4l2_capability  caps;// = {0};
@@ -284,11 +286,7 @@ bool v4ldevice::open()
     if(_motionhi)
     {
         _pmt = new mmotion(_xy[0], _xy[1], _nr);
-        if(_pmt)
-        {
-            _pmt->start_thread();
-        }
-        else
+        if(_pmt==0)
         {
             std::cout << "motion out memeory. motion is off \n";
             _motionhi = 0;
@@ -302,8 +300,8 @@ void v4ldevice::close()
 {
     if(_pmt)
     {
-        _pmt->stop_thread();
         delete _pmt;
+        _pmt = 0;
     }
     if(_device>0)
     {
@@ -322,8 +320,8 @@ void v4ldevice::close()
         int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
         _ioctl(VIDIOC_STREAMOFF, &type);
-	if(!_fatal)
-           ::v4l2_close(_device);
+        if(!_fatal)
+            ::v4l2_close(_device);
     }
     _device = 0;
 }
@@ -353,8 +351,8 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
     int r = select(_device + 1, &fds, NULL, NULL, &tv);
     if(r==-1)
     {
-	fatal=true;
-	_fatal=true;
+        fatal=true;
+        _fatal=true;
         return 0; // fatal
     }
     if(r == 0 || !FD_ISSET(_device, &fds))
@@ -368,12 +366,12 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
     if(-1==_ioctl(VIDIOC_DQBUF, &buf))
     {
         if(errno==EAGAIN){
-	    return 0;
-	}
+            return 0;
+        }
         if(errno!=0 && errno != EIO)
         {
-	    fatal=true;
-	    _fatal=true;
+            fatal=true;
+            _fatal=true;
             return 0;
         }
     }
@@ -404,6 +402,7 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
     {
         _moved = _pmt->has_moved((uint8_t*)_buffers[_curbuffer].start);
     }
+    _lasttime=time(0);
 
     return (const uint8_t*)_buffers[_curbuffer].start;
 }
@@ -418,243 +417,5 @@ const uint8_t* v4ldevice::getm(int& w, int& h, size_t& sz)
         return _pmt->motionbuf();
     }
     return 0;
-}
-
-
-mmotion::mmotion(int w, int h, int nr):_w(w),_h(h),_nr(nr)
-{
-    _mw = GCFG->_glb.motionw;
-    if(_mw>=w)
-        _mw=w/2;
-    else if(_mw<8)
-        _mw=8;
-    _mh = (_mw * _h) / _w;
-    size_t msz = (_mw) * (_mh);
-    _motionbufs[0] = new uint8_t[msz];
-    _motionbufs[1] = new uint8_t[msz];
-    _motionbufs[2] = new uint8_t[msz];
-    memset(_motionbufs[0],0,msz);
-    memset(_motionbufs[1],0,msz);
-    memset(_motionbufs[2],0,msz);
-    _motionindex = 0;
-    _motionsz = msz;
-    _moves=0;
-    _mmeter = 0;
-    _windtime=0;
-
-    _checkpass = 0;
-    _accumrect=GCFG->_glb.rectacum;
-    _rxe=0;
-    _pxe=0;
-    _pxs=0;
-    _pye=0;
-    _pxe=0;
-    _pys=0;
-    _pxs=0;
-}
-
-mmotion::~mmotion()
-{
-    delete []_motionbufs[0];
-    delete []_motionbufs[1];
-    delete []_motionbufs[2];
-}
-
-
-void mmotion::thread_main()
-{
-
-}
-
-
-int mmotion::has_moved(uint8_t* fmt420)
-{
-    register uint8_t *base_py = fmt420;
-    int               dx = _w / _mw;
-    int               dy = _h / _mh;
-    uint8_t*          pSeen = _motionbufs[2];
-    uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
-    uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
-    int               pixels = 0;
-    int               mdiff = GCFG->_glb.motiondiff*2.55;
-    int               xs = _mw;
-    int               ys = _mh;
-    int               xe = 0;
-    int               ye = 0;
-    uint8_t           Y,YP ;
-    int               bwind = GCFG->_glb.windcomp;
-    int               mrect = GCFG->_glb.motionrect;
-
-    if(mdiff<1)mdiff=8;
-    _dark  = 0;
-    _moves = 0;
-
-    if(--_accumrect > 0)
-    {
-        xs=_pxs;
-        xe=_pxe;
-        ys=_pys;
-        ye=_pye;
-    }
-    for (int y= 0; y <_mh; ++y)//height
-    {
-        for (int x = 0; x < _mw; ++x)//width
-        {
-            if(_rxe && bwind)
-            {
-                //ignore this area
-                if(x>_rxs && y>_rys && x < _rxe && y<_rye)
-                {
-                    *(pSeen + (y * _mw)+x) = (uint8_t)64;
-                    continue;
-                }
-            }
-
-            Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent PIXEL
-
-            // compute darklapse of the image
-            _dark += uint32_t(Y);
-            Y /= _nr; //reduce noise
-            Y *= _nr;
-            *(prowcur + (y * _mw)+x) = Y;               // build new video buffer
-            YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
-            int diff = Y - YP;
-            if(diff<mdiff)
-            {
-                diff=0; //black no move
-            }
-            else if(diff>mdiff)
-            {
-                if(bwind || mrect)
-                {
-                    xs=std::min(xs,x);
-                    ys=std::min(ys,y);
-                    ye=std::max(ye,y);
-                    xe=std::max(xe,x);
-                }
-                diff=255; //move
-                ++_moves;
-            }
-            *(pSeen + (y * _mw)+x) = (uint8_t)diff;      // what we see
-            ++pixels;
-        }
-    }
-
-    if(xs>0 && xs<xe)
-    {
-        if( _moves < GCFG->_glb.imotion[0] || _moves > GCFG->_glb.imotion[1])
-        {
-            bwind=false;
-        }
-
-        if(bwind)
-        {
-            if(_windtime==0)
-            {
-                _windtime   = gtc();
-                _checkcount = GCFG->_glb.windcount;
-                _checkpass  = 0;
-                _pxs = xs;
-                _pys = ys;
-                _pxe = xe;
-                _pye = ye;
-            }
-            else if(gtc()-_windtime>GCFG->_glb.windcheck)
-            {
-                if(--_checkcount)
-                {
-                    std::cout << "checking "<<_checkcount <<", " << int(gtc()-_windtime) <<", " <<_checkpass<<"\r\n";
-                    int percrect = GCFG->_glb.windcomp;
-                    int dxs = (abs(_pxs - xs)*100) / _mw;
-                    int dxe = (abs(_pxe - xe)*100) / _mw;
-                    int dys = (abs(_pys - ys)*100) / _mh;
-                    int dye = (abs(_pye - ye)*100) / _mh;
-
-                    std::cout << "percs " <<dxs <<", "<<dxe <<", "<<dys <<", "<<dye <<"\r\n";
-
-                    if(dys<percrect && dye<percrect && dxs<percrect && dxe<percrect)
-                    {
-                        ++_checkpass;
-                    }
-                    _pxs = xs;
-                    _pys = ys;
-                    _pxe = xe;
-                    _pye = ye;
-                }
-                else
-                {
-                    if(_checkpass > 3)
-                    {
-                        _rxs=_pxs;
-                        _rys=_pys;
-                        _rxe=_pxe;
-                        _rye=_pye;
-                        _checkpass = 0;
-                    }
-                    else
-                    {
-                        _rxe = 0;
-                        _pxs = 0;
-                        _pys = 0;
-                        _pxe = 0;
-                        _pye = 0;
-                    }
-                    _checkcount = GCFG->_glb.windcount;
-                }
-                _windtime=gtc();//check is in witin _checkcount
-
-            }
-        }
-        else
-        {
-            _pxs = xs;
-            _pys = ys;
-            _pxe = xe;
-            _pye = ye;
-        }
-
-
-        if(mrect)
-        {
-            for (int y= _pys; y <_pye; ++y)//height
-            {
-                *(pSeen + (y * _mw)+_pxs) = (uint8_t)255;      // what we see
-                *(pSeen + (y * _mw)+_pxe) = (uint8_t)255;      // what we see
-            }
-            for (int x = _pxs; x < _pxe; ++x)//width
-            {
-                *(pSeen + (_pys * _mw)+x) = (uint8_t)255;      // what we see
-                *(pSeen + (_pye * _mw)+x) = (uint8_t)255;      // what we see
-            }
-
-        }
-    }
-
-    // show movement percentage on left as bar
-    int percentage = (float(_moves) / float(pixels)) * float(_mh);
-    if(percentage > _mmeter)
-        _mmeter = percentage;
-    else if(_mmeter)
-        --_mmeter;
-    if(_mmeter)
-    {
-        int y =_mh;
-        int x = 0;
-        while(y)
-        {
-            if(_mmeter < y)
-                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)0;
-            else
-                *(pSeen + ((_mh-y) * _mw)+x) = (uint8_t)255;
-            --y;
-        }
-    }
-
-    _dark /= pixels;
-    _motionindex = !_motionindex;
-    if(_accumrect==0)
-        _accumrect=GCFG->_glb.rectacum;
-
-    return _moves;
 }
 
