@@ -44,7 +44,7 @@ public:
             }
             return false;
         }
-        Rect& operator=(const Rect& r){_x=r._x;_y=r._y;_X=r._X;_Y=r._Y;}
+        Rect& operator=(const Rect& r){_x=r._x;_y=r._y;_X=r._X;_Y=r._Y; return *this;}
         int  maxdiff(const Rect& r)const{
             int diff = std::abs(r._x-_x);
             diff = std::max(diff, std::abs(r._y-_y));
