@@ -1,6 +1,7 @@
 # LIGHTWEIGHT CAMERA MOTION DETECTION SUITABLE FOR R-PI, NANO-PI, C H I P AND SUCH, 
 # TIME LAPSE AND MOTION CAM 
 
+### NOOBS Preloaded SDCard at https://www.redypis.org
 
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 #### Acceessible direct from browser without additional web server. http://IP:PORT/?html
