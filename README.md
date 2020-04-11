@@ -1,6 +1,8 @@
 # LIGHTWEIGHT CAMERA MOTION DETECTION SUITABLE FOR R-PI, NANO-PI, C H I P AND SUCH, 
 # TIME LAPSE AND MOTION CAM 
 
+AD:  [PRELOADED SD CARDS FOR RASPERRY PI](https://www.redypis.org/) 
+
 ### NOOBS Preloaded SDCard at https://www.redypis.org
 
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
