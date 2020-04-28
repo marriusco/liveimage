@@ -69,6 +69,7 @@ public:
 
             windcomp=30;
             windcheck=8;
+	    maxfiles=0;
         }
         int     darklapse;
         int     darkmotion;
@@ -100,6 +101,7 @@ public:
         int     windcomp;
         int     windcheck;
         int     windaccum;
+	int     maxfiles;
     }_glb;
 
 };

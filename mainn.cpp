@@ -136,10 +136,17 @@ int main(int nargs, char* vargs[])
         uint64_t maxfiles=0;
         uint32_t maxfiles2=0;
         int firstimage=0;
-
-        if(!conf._glb.pathname.empty())
-            calc_room(conf._glb.pathname, firstimage, maxfiles);
-	maxfiles2=(uint32_t)maxfiles;
+	if(conf._glb.maxfiles==0)
+	{
+        	if(!conf._glb.pathname.empty())
+	            calc_room(conf._glb.pathname, firstimage, maxfiles);
+		maxfiles2=(uint32_t)maxfiles;
+	}
+	else
+	{
+		maxfiles2 = conf._glb.maxfiles;
+	}
+	std::cout << "rotating images at:" << maxfiles2 << "\n";
         capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles2);
 
         delete ps;
