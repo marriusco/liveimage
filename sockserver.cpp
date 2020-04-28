@@ -187,14 +187,14 @@ bool sockserver::snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
     struct  timeval timestamp;
     char    hdr[512];
     struct timezone tz = {5,0};
-    int szh = strlen(hdr);
+    int szh;
     int  rv = 0;
 
     gettimeofday(&timestamp, &tz);
     sprintf(hdr,HDR, ifmt, sz, (int) timestamp.tv_sec, (int) timestamp.tv_usec);
     for(auto& s : _clis)
     {
-
+        szh = strlen(hdr);
         rv = s->sendall(hdr,szh,100);
         rv = s->sendall(jpg,sz,1000);
 
