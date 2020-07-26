@@ -3,6 +3,8 @@
 
 AD:  [PRELOADED SD CARDS FOR RASPERRY PI](https://www.redypis.org/) 
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L9RVWU5NUZ4YG)   [donations are taken care by meeiot domain]
+
 ### NOOBS Preloaded SDCard at https://www.redypis.org
 
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
