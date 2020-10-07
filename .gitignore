@@ -6,4 +6,6 @@ cmake_install.cmake
 liveimage
 filename.jpg
 build/*
-
+*.o
+*.a
+build-qt*/*
