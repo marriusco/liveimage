@@ -5,4 +5,5 @@ Makefile
 cmake_install.cmake
 liveimage
 filename.jpg
+build/*
 

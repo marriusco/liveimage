@@ -44,6 +44,8 @@ public:
             }
             return false;
         }
+        int width()const{return _X-_x;}
+        int height()const{return _Y-_y;}
         Rect& operator=(const Rect& r){_x=r._x;_y=r._y;_X=r._X;_Y=r._Y; return *this;}
         int  maxdiff(const Rect& r)const{
             int diff = std::abs(r._x-_x);
@@ -105,6 +107,11 @@ public:
         }
         return false;
     }
+    const Rect& currect(int allmoves)
+    {
+        return _curRect;
+    }
+
     const Rect& reject(int allmoves){
         if(_accumulating==0)
         {
@@ -186,7 +193,7 @@ private:
     uint32_t  _dark;
     int       _nr;
     int       _mmeter;
-
+    int       _motion_rect[4]; //x/y/w/h
 };
 
 

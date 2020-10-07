@@ -93,6 +93,8 @@ public:
         int     w;
         int     h;
         int     motionw;
+        string  motionrect;
+        int     rmotionrect[4];
         int     imotion[2];
         uint32_t     motionsnap;
         uint32_t     savelapse;

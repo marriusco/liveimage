@@ -30,8 +30,15 @@ LiConfig* GCFG;
 
 LiConfig::LiConfig(const char* fname)
 {
+    char test[256];
+    ::getcwd(test,255);
     GCFG = this;
+    _glb.rmotionrect[0]=0;
+    _glb.rmotionrect[1]=0;
+    _glb.rmotionrect[2]=0;
+    _glb.rmotionrect[3]=0;
     load(fname);
+
 }
 
 LiConfig::~LiConfig()
@@ -105,6 +112,7 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, motiondiff);
             BIND(_glb, motiontrail);
             BIND(_glb, motionw);
+            BIND(_glb, motionrect)
 
             BIND(_glb, savelapse);
             BIND(_glb, httpport);
@@ -122,7 +130,10 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
 bool LiConfig::finalize()
 {
     ::sscanf(_glb.motion.c_str(),"%d,%d", &_glb.imotion[0], &_glb.imotion[1]);
-    ::sscanf(_glb.imagesize.c_str(),"%dx%d", &_glb.w, &_glb.h);
+    ::sscanf(_glb.imagesize.c_str(),"%d,%d", &_glb.w, &_glb.h);
+    ::sscanf(_glb.motionrect.c_str(),"%d,%d,%d,%d",
+             &_glb.rmotionrect[0],&_glb.rmotionrect[1],
+             &_glb.rmotionrect[2],&_glb.rmotionrect[3]);
 
     return Conf::finalize();
 }
