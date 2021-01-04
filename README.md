@@ -5,8 +5,6 @@ AD:  [PRELOADED SD CARDS FOR RASPERRY PI](https://www.redypis.org/)
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L9RVWU5NUZ4YG)   [donations are taken care by meeiot domain]
 
-### NOOBS Preloaded SDCard at https://www.redypis.org
-
 #### Streams live right into the  IMG HTML element  &lt; img src='http://liveimage_ip:port/?live' / &gt;.
 #### Acceessible direct from browser without additional web server. http://IP:PORT/?html
 ### Time lapse snapshots 
@@ -26,7 +24,7 @@ Questions, just ask.
 
 https://youtu.be/gebbErEJj1A
 
-[![Demo Video](https://github.com/comarius/liveimage/blob/master/v4l2n.png?raw=true)](https://youtu.be/gebbErEJj1A)
+[![Demo Video](https://github.com/circinusX1/liveimage/blob/master/v4l2n.png?raw=true)](https://youtu.be/gebbErEJj1A)
 
 ### Build
 
@@ -107,7 +105,7 @@ http://localhost:90000/?html
 ### Foliage wind reject auto area
 
 
-![alt text](https://raw.githubusercontent.com/comarius/liveimage/master/images/motion1.png "foliage")
+![alt text](https://raw.githubusercontent.com/circinusX1/liveimage/master/images/motion1.png "foliage")
    
    
 ###  You can check my reverse ssh online service and online key value database at 
