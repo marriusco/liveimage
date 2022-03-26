@@ -93,6 +93,9 @@ make a page
 
 ```javascript
 http://localhost:90000/?html
+http://192.168.1.219:9000/?live
+http://192.168.1.219:9000/?motion
+
 ```
 
 ### License: 
