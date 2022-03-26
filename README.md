@@ -53,6 +53,8 @@ sudo mkdir /data/snaps
 sudo chown $USER:USER /data/snaps
 # eventually mount a separate SDD drive to  /data/snaps
 # start liveimage 
+cp libeimage ./bin
+cd bin
 ./liveimage
 ```
 
