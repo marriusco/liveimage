@@ -19,8 +19,8 @@
 
 
 #define LIVEIMAGE_VERSION "1.0.0"
-#define cimg_display 0
-#define cimg_use_jpeg
+//#define cimg_display 0
+//#define cimg_use_jpeg
 
 #include <stdint.h>
 #include <unistd.h>
@@ -32,7 +32,7 @@
 #include "v4ldevice.h"
 #include "sockserver.h"
 #include "jpeger.h"
-#include "CImg.h"
+//#include "CImg.h"
 #include "liconfig.h"
 
 /*
@@ -136,17 +136,17 @@ int main(int nargs, char* vargs[])
         uint64_t maxfiles=0;
         uint32_t maxfiles2=0;
         int firstimage=0;
-	if(conf._glb.maxfiles==0)
-	{
-        	if(!conf._glb.pathname.empty())
-	            calc_room(conf._glb.pathname, firstimage, maxfiles);
-		maxfiles2=(uint32_t)maxfiles;
-	}
-	else
-	{
-		maxfiles2 = conf._glb.maxfiles;
-	}
-	std::cout << "rotating images at:" << maxfiles2 << "\n";
+    if(conf._glb.maxfiles==0)
+    {
+            if(!conf._glb.pathname.empty())
+                calc_room(conf._glb.pathname, firstimage, maxfiles);
+        maxfiles2=(uint32_t)maxfiles;
+    }
+    else
+    {
+        maxfiles2 = conf._glb.maxfiles;
+    }
+    std::cout << "rotating images at:" << maxfiles2 << "\n";
         capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles2);
 
         delete ps;
@@ -307,41 +307,23 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         //
         if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
         {
-            const unsigned char color[] = { 255,255,255 };
-            const unsigned char bg[] = { 0,0, 128};
-            char 		fname[128];
-            char                stamp[128];
-            FILE* 		pff = ::fopen("/tmp/liveimage.jpg","wb");
+	     char fname[128];
+            ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
+            ++firstimage;
+            if(firstimage > maxfiles)  firstimage = 0;
+            FILE* 		pff = ::fopen(fname,"wb");
             if(pff)
             {
                 ::fwrite(pjpg,1,jpgsz,pff);
                 ::fclose(pff);
-	            cimg_library::CImg<uint8_t> cimage("/tmp/liveimage.jpg");
-                if(GCFG->_glb.flip)
-                    cimage.rotate(180);
-        	    ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
-	            ++firstimage;
-        	    if(firstimage > maxfiles)  firstimage = 0;
-	            std::cout << "saving: " << fname << "\n";
-        	    ::sprintf(stamp, "%s, %s: motion: %d", fname, str_time(), movepix);
-	            cimage.draw_text(10, ih-17, stamp, color, bg, 1, 16);	
-        	    cimage.save(fname);
-	            if(GCFG->_glb.userpid > 0)
-        	    {
-                	::kill(GCFG->_glb.userpid, SIGUSR2);
-	                std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
-        	    }
-
-	            //
-        	    // last image name
-	            //
-        	    pff = ::fopen("./.lastimage","wb");
-	            if(pff)
-        	    {
-                	::fprintf(pff,"%d",(firstimage-1));
-	                ::fclose(pff);
-        	    }
-	      }
+                std::cout << "saving: " << fname << "\n";
+                ::symlink(fname,"tmp/lastimage.jpg");
+                if(GCFG->_glb.userpid > 0)
+                {
+                    ::kill(GCFG->_glb.userpid, SIGUSR2);
+                    std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
+                }
+            }
         }
         savelapse = false;
         savemove = false;

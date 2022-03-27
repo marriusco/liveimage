@@ -17,14 +17,14 @@ mmotion::mmotion(int w, int h, int nr):_wind(w,h),_w(w),_h(h),_nr(nr)
     _motion_rect[1]=GCFG->_glb.rmotionrect[1]*ratio;
     _motion_rect[2]=GCFG->_glb.rmotionrect[2]*ratio;
     _motion_rect[3]=GCFG->_glb.rmotionrect[3]*ratio;
-    if(_motion_rect[1]==0&&_motion_rect[0]==0)
+    if(_motion_rect[0]==0 && _motion_rect[1]==0)
     {
         _motion_rect[0]=0;
         _motion_rect[1]=0;
         _motion_rect[2]=_mw;
         _motion_rect[3]=_mh;
-
     }
+    
     _motionbufs[0] = new uint8_t[msz];
     _motionbufs[1] = new uint8_t[msz];
     _motionbufs[2] = new uint8_t[msz];

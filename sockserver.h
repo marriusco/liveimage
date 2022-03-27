@@ -70,6 +70,7 @@ private:
     std::vector<imgclient*> _clis;
     bool _dirty;
     bool _headered;
+    string _host;
 };
 
 #endif // SOCKSERVER_H

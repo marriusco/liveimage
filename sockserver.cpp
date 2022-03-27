@@ -153,7 +153,16 @@ bool sockserver::spin()
                			}
                         else if( strstr(req, "/?html"))
                         {
-                            std::cout << "          ?HTML \n";
+			    char * host = strstr(req, "Host:");
+			    if(host){
+				char* eol = strstr(host,"\r\n");
+				if(eol){
+				    *eol=0;
+				    _host = host+6;
+	                            std::cout <<"host=["<<_host<<"\r\n";
+				}
+		            }
+                            std::cout <<"[" <<req << "]          ?HTML \n";
                             s->_needs = WANTS_HTML;
                         }
                     }
@@ -244,7 +253,7 @@ void sockserver::_send_page(imgclient* pc)
     char  html[256];
 
     int len = ::sprintf(image,
-            "<img width='640' src='http://%s:9000/?live' />",GCFG->_glb.httpip.c_str());
+            "<img width='640' src='http://%s/?live' />",_host.c_str());
     len = ::sprintf(html,
                     "HTTP/1.1 200 OK\r\n"
                     "Content-length: %d\r\n"

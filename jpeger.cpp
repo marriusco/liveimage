@@ -49,11 +49,14 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
 {
     if(_image==0)
     {
-        _memsz = w * h * 3;
+        _memsz = (w) * (h) * 3;
+	std::cout << "NEW" << w << "x"<< h << "=" << _memsz << "\r\n";
         try{
             _image = new uint8_t[_memsz]; // this should be enough ?!?
         }catch(...)
         {
+		std::cout << "ERROR" << w << "x"<< h << "=" << _memsz << "\r\n";
+		return (0);
         }
     }
     if(_image == 0)
