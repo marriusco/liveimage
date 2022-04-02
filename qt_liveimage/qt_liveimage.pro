@@ -1,18 +1,10 @@
 QT -= gui
+QT -= core
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
+QMAKE_LFLAGS += -no-pie
 
-# The following define makes your compiler emit warnings if you use
-# any Qt feature that has been marked deprecated (the exact warnings
-# depend on your compiler). Please consult the documentation of the
-# deprecated API in order to know how to port your code away from it.
-DEFINES += QT_DEPRECATED_WARNINGS
-
-# You can also make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-# You can also select to disable deprecated APIs only up to a certain version of Qt.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
     ../config.cpp \
@@ -23,7 +15,8 @@ SOURCES += \
     ../outfilefmt.cpp \
     ../sock.cpp \
     ../sockserver.cpp \
-    ../v4ldevice.cpp
+    ../v4ldevice.cpp \
+    ../webcast.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -31,11 +24,16 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 DISTFILES += \
+    ../../../../var/www/html/camera.php \
+    ../../../../var/www/html/camera_old.php \
+    ../../../../var/www/html/server.php \
+    ../../../../var/www/html/stream.php \
+    ../../../../var/www/html/stream2.php \
+    ../../../../var/www/html/upload.php \
     ../bin/liveimage.conf \
     ../liveimage.conf
 
 HEADERS += \
-    ../CImg.h \
     ../config.h \
     ../jpeger.h \
     ../liconfig.h \
@@ -45,7 +43,9 @@ HEADERS += \
     ../sock.h \
     ../sockserver.h \
     ../strutils.h \
-    ../v4ldevice.h
+    ../v4ldevice.h \
+    ../webcast.h
 
 
 LIBS +=  -lpthread -lpng -ljpeg -lv4l2
+LIBS += -L$$usr/lib/x86_64-linux-gnu

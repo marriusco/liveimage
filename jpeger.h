@@ -27,6 +27,7 @@
 #include "outfilefmt.h"
 #include <time.h>
 #include <jpeglib.h>
+
 #include <jerror.h>
 
 class jpeger : public outfilefmt
@@ -39,11 +40,11 @@ public:
                            int quality, uint8_t** pjpeg);
 
 private:
-    int _put_jpeg_yuv420p_memory(uint8_t *dest_image, int image_size,
+	int _put_jpeg_yuv420p_memory(uint8_t *dest_image, int image_size,
 				   const uint8_t *input_image, int width, int height, int quality,
 				   struct tm *tm);
 
-    void _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize);
+	void _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize);
 private:
     uint8_t*    _image;
     int         _jpegQuality;

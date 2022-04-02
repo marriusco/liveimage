@@ -32,8 +32,9 @@
 #include "v4ldevice.h"
 #include "sockserver.h"
 #include "jpeger.h"
-//#include "CImg.h"
+#include "jpeger.h"
 #include "liconfig.h"
+#include "webcast.h"
 
 /*
 sudo apt-get install libpng-dev libv4l-dev libjpeg-dev
@@ -111,6 +112,7 @@ int main(int nargs, char* vargs[])
     LiConfig    conf("liveimage.conf");
     int         w,h;
     size_t      sz ;
+
     v4ldevice   dev(conf._glb.device.c_str(),
                     conf._glb.w, conf._glb.h,
                     conf._glb.fps,
@@ -205,6 +207,13 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
     int             iw = GCFG->_glb.w;
     int             ih = GCFG->_glb.h;
     bool            fatal=false;
+    WebCast          cast;
+
+
+   if(!GCFG->_glb.webcast.empty())
+   {
+       cast.start_thread();
+   }
 
     while(__alive  && 0 == ::usleep(20000))
     {
@@ -248,6 +257,12 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 robinserve = 0x1;
             }
         }
+        if(!cast.is_stopped())
+        {
+            cast.stream_frame(pjpg, jpgsz);
+        }
+
+
         uint32_t now =  gtc();
 
         //
@@ -307,7 +322,7 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         //
         if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
         {
-	     char fname[128];
+            char fname[128];
             ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
             ++firstimage;
             if(firstimage > maxfiles)  firstimage = 0;
@@ -316,7 +331,7 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
             {
                 ::fwrite(pjpg,1,jpgsz,pff);
                 ::fclose(pff);
-                std::cout << "saving: " << fname << "\n";
+                // mco- std::cout << "saving: " << fname << "\n";
                 ::symlink(fname,"tmp/lastimage.jpg");
                 if(GCFG->_glb.userpid > 0)
                 {
@@ -333,4 +348,6 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         if(GCFG->_glb.oneshot)
             break;
     }
+
+    cast.stop_thread();
 }

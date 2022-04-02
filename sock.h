@@ -339,7 +339,7 @@ protected:
     int             _buffers[2];
     SADDR_46        _ipfixit;
     SADDR_46	    _local_sin;	        // source
-	SADDR_46	    _remote_sin;          // dest
+    SADDR_46	    _remote_sin;          // dest
     static  unsigned long   _tout;
 
 };
@@ -405,9 +405,9 @@ public:
     virtual SOCKET  create(const SADDR_46& r, int opt=0);
     virtual int     raw_connect(const SADDR_46& uip4, int tout=0);
     virtual int     raw_connect(u_int32_t ip4,  int port);
-	virtual int     raw_connect_sin();
+    virtual int     raw_connect_sin();
     int             try_connect(const char* sip, int port);
-	void            raw_sethost(const SADDR_46& uip4);
+    void            raw_sethost(const SADDR_46& uip4);
     int             openconnection(const char* sip, int port);
     int             connect(const char* sip, int port, CancelCB cbCall=sock::DefCBCall, void* pUser=0);
     int             i4connect(const SADDR_46& ip, CancelCB cbCall=sock::DefCBCall, void* pUser=0);
@@ -447,12 +447,12 @@ public:
     virtual int     receive(unsigned char* buff, int length,  SADDR_46& rsin);
     virtual int     receive(char* buff, int length, int port=0, const char* ip=0  );
     virtual int     receive(char* buff, int length,  SADDR_46& rsin);
-    void            SetRsin(const  SADDR_46& in){::memcpy(&_remote_sin, &in, sizeof( SADDR_46));}
+    void            SetRsin(const  SADDR_46& in){_remote_sin = in;}
     int             connect(const char* sip, int port, CancelCB cbCall=sock::DefCBCall, void* pUser=0);
     int             set_rsin(const char* sip, int port);
     int             bind(const char* ip=0, int port=0);
-    SADDR_46&          remote(){return _remote_sin;}
-    void            remote(SADDR_46& s){memcpy(&_remote_sin,&s,sizeof(s));}
+    SADDR_46&       remote(){return _remote_sin;}
+    void            remote(SADDR_46& s){_remote_sin =s;}
     char*           ssock_addrip();
 
 protected:

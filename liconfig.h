@@ -28,6 +28,7 @@ public:
     virtual ~LiConfig();
     void    ix_path(std::string& path)
     {
+        (void)path;
     }
     void refresh_domains();
 protected:
@@ -35,6 +36,7 @@ protected:
     void _assign( const char* pred, const char* val, int line);
     void fix_path(std::string& path)
     {
+        (void)path;
     }
 
 public:
@@ -69,7 +71,7 @@ public:
 
             windcomp=30;
             windcheck=8;
-	    maxfiles=0;
+        maxfiles=0;
         }
         int     darklapse;
         int     darkmotion;
@@ -99,11 +101,13 @@ public:
         uint32_t     motionsnap;
         uint32_t     savelapse;
         int     httpport;
-        string  httpip;
         int     windcomp;
         int     windcheck;
         int     windaccum;
-	int     maxfiles;
+        int     maxfiles;
+        string  webcast;
+        string  transport;
+        string  kodek;
     }_glb;
 
 };

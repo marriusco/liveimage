@@ -375,14 +375,17 @@ public:
 
     void set_prio(int boost)
     {
+        (void)boost;
         if(_hthread)
         {
             // pthread_setschedprio(_hthread, 32);
         }
     }
+
 protected:
     virtual void thread_main() {};
     int         _bstop;
+
 private:
     int         _init;
     mutex       _mutex;

@@ -116,12 +116,13 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
 
             BIND(_glb, savelapse);
             BIND(_glb, httpport);
-            BIND(_glb, httpip);
-
             BIND(_glb, windcomp);
             BIND(_glb, windcheck);
             BIND(_glb, windcheck);
             BIND(_glb, maxfiles);
+            BIND(_glb, webcast);
+            BIND(_glb, transport);
+            BIND(_glb, kodek);
         }
     }
     catch(int done) {}

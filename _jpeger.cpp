@@ -49,14 +49,14 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
 {
     if(_image==0)
     {
-        _memsz = ((w * h) / 7);
-        std::cout << "NEW" << w << "x"<< h << "=" << _memsz << "\r\n";
+        _memsz = (w) * (h) * 3;
+    std::cout << "NEW" << w << "x"<< h << "=" << _memsz << "\r\n";
         try{
             _image = new uint8_t[_memsz]; // this should be enough ?!?
         }catch(...)
         {
-            std::cout << "ERROR" << w << "x"<< h << "=" << _memsz << "\r\n";
-            return (0);
+        std::cout << "ERROR" << w << "x"<< h << "=" << _memsz << "\r\n";
+        return (0);
         }
     }
     if(_image == 0)
@@ -65,13 +65,7 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
         __alive=false;
         return 0;
     }
-    try{
-        _imgsize =  _put_jpeg_yuv420p_memory(_image, isize, fmt420, w, h, quality, 0);
-    }catch(...)
-    {
-        std::cerr <<  "out of memory" << DERR();
-        exit(1);
-    }
+    _imgsize =  _put_jpeg_yuv420p_memory(_image, isize, fmt420, w, h, quality, 0);
     *pjpeg = _image;
     return  _imgsize;
 }
@@ -92,19 +86,18 @@ uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h, int imgsz,
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_compress(&cinfo);
 
-    _jpeg_mem_dest(&cinfo, _image, imgsz);
-
     cinfo.image_width = w;
     cinfo.image_height = h;
     cinfo.input_components = 1;
     cinfo.in_color_space = JCS_GRAYSCALE;
     jpeg_set_defaults(&cinfo);
+
     jpeg_set_colorspace(&cinfo, JCS_GRAYSCALE);
+    //cinfo.raw_data_in = TRUE;
     cinfo.dct_method = JDCT_FASTEST;
 
     jpeg_set_quality(&cinfo, 80, TRUE /* limit to baseline-JPEG values */);
-
-
+    _jpeg_mem_dest(&cinfo, _image, imgsz);
     jpeg_start_compress(&cinfo, TRUE);
     row_stride = w ;
 
@@ -133,21 +126,16 @@ int jpeger::_put_jpeg_yuv420p_memory(uint8_t *pdest,
                                      struct tm *tm)
 {
     int i, j, jpeg_imgsz;
-    JSAMPROW y[8],cb[8],cr[8];
+    JSAMPROW y[16],cb[16],cr[16];
     JSAMPARRAY data[3];
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
-
-    memset(&cinfo, 0, sizeof(cinfo));
 
     data[0] = y;
     data[1] = cb;
     data[2] = cr;
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_compress(&cinfo);
-
-    _jpeg_mem_dest(&cinfo, pdest, imgsz);
-
     cinfo.image_width = width;
     cinfo.image_height = height;
     cinfo.input_components = 3;
@@ -164,9 +152,9 @@ int jpeger::_put_jpeg_yuv420p_memory(uint8_t *pdest,
     cinfo.comp_info[2].h_samp_factor = 1;
     cinfo.comp_info[2].v_samp_factor = 1;
 
-    jpeg_set_quality(&cinfo, quality, 0);
+    jpeg_set_quality(&cinfo, quality, TRUE);
     cinfo.dct_method = JDCT_FASTEST;
-
+    _jpeg_mem_dest(&cinfo, pdest, imgsz);
     jpeg_start_compress(&cinfo, TRUE);
 
     for (j = 0; j < height; j += 16)
@@ -196,12 +184,9 @@ void jpeger:: _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize)
     if (cinfo->dest == NULL)
     {
         cinfo->dest = (struct jpeg_destination_mgr *)
-                (*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT,
-                                           sizeof(mem_destination_mgr));
+                      (*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT,
+                              sizeof(mem_destination_mgr));
     }
-
-   // std::cout << __FUNCTION__ << bufsize  << ":"<< ((size_t)buf) <<"\r\n";
-
     dest = (mem_dest_ptr) cinfo->dest;
     dest->pub.init_destination    = _init_destination;
     dest->pub.empty_output_buffer = _empty_output_buffer;
@@ -231,8 +216,6 @@ static boolean  _empty_output_buffer(j_compress_ptr cinfo)
 static void _term_destination(j_compress_ptr cinfo)
 {
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
-    size_t jpgsize = dest->bufsize -cinfo->dest->free_in_buffer;
-
     dest->jpegsize = dest->bufsize - dest->pub.free_in_buffer;
 }
 

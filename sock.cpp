@@ -476,7 +476,6 @@ int tcp_sock::receive(unsigned char* buff, int length, int , const char* )
         _error = errno;
         if(errno==EAGAIN || errno== EWOULDBLOCK)
         {
-            std::cout << "sock again \n";
             return -1;
         }
         return 0;
@@ -824,6 +823,7 @@ int tcp_cli_sock::try_connect(const char* sip, int port)
         _error = errno;
         if(_error==EINPROGRESS || _error == WOULDBLOCK)
         {
+            sleep(3);
             _connecting = 1; //in progress
             return -1; //in progress
         }
@@ -1412,7 +1412,7 @@ SOCKET udp_group_sock::create(int opt)
 {
     _error = 0;
     ::memset(&_mcastGrp,0,sizeof(_mcastGrp));
-	_groupmember = FALSE;
+    _groupmember = FALSE;
 
     // from server
     _local_sin.sin_family      = AF_INET;
@@ -1423,16 +1423,16 @@ SOCKET udp_group_sock::create(int opt)
               sizeof (_local_sin)) == -1)
     {
         _error =  errno;
-		destroy();
-		return -1;
+        destroy();
+        return -1;
     }
     int iOptVal = opt;  // time to live (in the net)
     if (setsockopt (_thesock, IPPROTO_IP, IP_MULTICAST_TTL,
                     (char  *)&iOptVal, sizeof (int)) == -1)
     {
         _error =  errno;
-		destroy();
-		return -1;
+        destroy();
+        return -1;
     }
     return 0;
 }
@@ -1440,7 +1440,7 @@ SOCKET udp_group_sock::create(int opt)
 //-----------------------------------------------------------------------------
 int udp_group_sock::send(const unsigned char* buff, int length, int port, const char* ipGrp)
 {
-	int snd;
+    int snd;
 
     _error = 0;
     _remote_sin.sin_family = AF_INET;
@@ -1450,7 +1450,7 @@ int udp_group_sock::send(const unsigned char* buff, int length, int port, const 
                     (struct sockaddr  *) &_remote_sin, sizeof (_remote_sin)) ;
     if(snd < 0)
     {
-		_error = errno;
+        _error = errno;
     }
     return snd;
 }
@@ -1495,9 +1495,9 @@ int udp_group_sock::join(const char* ipGrp, int port)
     int bnd = ::bind (_thesock, (struct sockaddr  *) &_local_sin, sizeof (_local_sin));
     if (bnd == -1)
     {
-		_error =  errno;
-		destroy();
-		return bnd;
+        _error =  errno;
+        destroy();
+        return bnd;
     }
 
     //join the multicast group
@@ -1506,9 +1506,9 @@ int udp_group_sock::join(const char* ipGrp, int port)
     bnd = ::setsockopt (_thesock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char  *)&_mcastGrp, sizeof (_mcastGrp)) ;
     if (bnd == -1)
     {
-		_error =  errno;
-		destroy();
-		return bnd;
+        _error =  errno;
+        destroy();
+        return bnd;
     }
     _groupmember = TRUE;
     return 0;

@@ -41,7 +41,7 @@ bool sockserver::listen()
     int ntry = 0;
 AGAIN:
     if(__alive==false)
-       return false;
+        return false;
     if(_s.create(_port, SO_REUSEADDR, 0)>0)
     {
         fcntl(_s.socket(), F_SETFD, FD_CLOEXEC);
@@ -128,40 +128,40 @@ bool sockserver::spin()
                 int rt = s->receive(req,511);
                 if(rt==0)//con closed
                 {
-				    std::cout << "client closed connection \n";
+                    std::cout << "client closed connection \n";
                     s->destroy();
                     _dirty = true;
                 }
                 if(rt > 0)
                 {
                     if(s->_needs == 0 )
-					{
+                    {
                         if( strstr(req, "/?live"))
-		    			{
+                        {
                             std::cout << "          ?LIVE \n";
                             s->_needs = WANTS_IMAGE;
-               			}
-                    	else if( strstr(req, "/?motion"))
-               			{
+                        }
+                        else if( strstr(req, "/?motion"))
+                        {
                             std::cout << "          ?MOTION \n";
                             s->_needs = WANTS_MOTION;
-               			}
+                        }
                         else if( strstr(req, "/?video"))
-               			{
+                        {
                             std::cout << "          ?VIDEO (work in progress) \n";
                             s->_needs = WANTS_VIDEO_TODO;
-               			}
+                        }
                         else if( strstr(req, "/?html"))
                         {
-			    char * host = strstr(req, "Host:");
-			    if(host){
-				char* eol = strstr(host,"\r\n");
-				if(eol){
-				    *eol=0;
-				    _host = host+6;
-	                            std::cout <<"host=["<<_host<<"\r\n";
-				}
-		            }
+                            char * host = strstr(req, "Host:");
+                            if(host){
+                                char* eol = strstr(host,"\r\n");
+                                if(eol){
+                                    *eol=0;
+                                    _host = host+6;
+                                    std::cout <<"host=["<<_host<<"\r\n";
+                                }
+                            }
                             std::cout <<"[" <<req << "]          ?HTML \n";
                             s->_needs = WANTS_HTML;
                         }
@@ -253,7 +253,7 @@ void sockserver::_send_page(imgclient* pc)
     char  html[256];
 
     int len = ::sprintf(image,
-            "<img width='640' src='http://%s/?live' />",_host.c_str());
+                        "<img width='640' src='http://%s/?live' />",_host.c_str());
     len = ::sprintf(html,
                     "HTTP/1.1 200 OK\r\n"
                     "Content-length: %d\r\n"
@@ -268,23 +268,23 @@ bool sockserver::stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, i
     {
         switch(s->_needs)
         {
-            case WANTS_MOTION:
-                if(wants == WANTS_MOTION)
-                    rv = this->_stream_image(s, buff, sz, ifmt);
+        case WANTS_MOTION:
+            if(wants == WANTS_MOTION)
+                rv = this->_stream_image(s, buff, sz, ifmt);
             break;
-            case WANTS_IMAGE:
-                if(wants == WANTS_IMAGE)
-                    rv = this->_stream_image(s, buff, sz, ifmt);
-                break;
-            case WANTS_VIDEO_TODO:
-                if(wants == WANTS_VIDEO_TODO)
-                    rv = this->_stream_video(s, buff, sz);
-                break;
-            case WANTS_HTML:
-                _send_page(s);
-                break;
-            default:
-                break;
+        case WANTS_IMAGE:
+            if(wants == WANTS_IMAGE)
+                rv = this->_stream_image(s, buff, sz, ifmt);
+            break;
+        case WANTS_VIDEO_TODO:
+            if(wants == WANTS_VIDEO_TODO)
+                rv = this->_stream_video(s, buff, sz);
+            break;
+        case WANTS_HTML:
+            _send_page(s);
+            break;
+        default:
+            break;
         }
     }
     if(_dirty)
@@ -304,13 +304,13 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     if(!pc->_headered)
     {
         sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
-        "HTTP/1.0 200 OK\r\n"
-        "Connection: close\r\n"
-        "Server: v4l2net/1.0\r\n"
-        "Cache-Control: no-cache\r\n"
-        "Content-Type: multipart/x-mixed-replace;boundary=thesupposeduniqueb\r\n" \
-                "\r\n" \
-                "--thesupposeduniqueb\r\n");
+                        "HTTP/1.0 200 OK\r\n"
+                        "Connection: close\r\n"
+                        "Server: v4l2net/1.0\r\n"
+                        "Cache-Control: no-cache\r\n"
+                        "Content-Type: multipart/x-mixed-replace;boundary=MY_BOUNDARY_STRING_NOONE_HAS\r\n" \
+                        "\r\n" \
+                        "--MY_BOUNDARY_STRING_NOONE_HAS\r\n");
 
         rv = pc->sendall(buffer, strlen(buffer),100);
         if(rv==0)
@@ -322,9 +322,9 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
         pc->_headered=true;
     }
     sprintf(buffer, "Content-Type: image/%s\r\n" \
-        "Content-Length: %d\r\n" \
-        "X-Timestamp: %d.%06d\r\n" \
-        "\r\n", ifmt, sz, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
+                    "Content-Length: %d\r\n" \
+                    "X-Timestamp: %d.%06d\r\n" \
+                    "\r\n", ifmt, sz, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
     rv = pc->sendall(buffer,strlen(buffer),100);
     if(rv==0)
     {
@@ -339,7 +339,7 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
         _dirty=true;
         return false;
     }
-    ::sprintf(buffer, "\r\n--thesupposeduniqueb\r\nContent-type: image/%s\r\n", ifmt);
+    ::sprintf(buffer, "\r\n--MY_BOUNDARY_STRING_NOONE_HAS\r\nContent-type: image/%s\r\n", ifmt);
     rv = pc->sendall(buffer,strlen(buffer),100);
     if(rv==0)
     {
