@@ -162,7 +162,7 @@ void WebCast::_send_udp(const char* host)
         else
             std::cout << "stream offline \r\n";
         sleep(1);
-        while(s.isopen())
+        while(s.isopen() && __alive)
         {
 
             do{

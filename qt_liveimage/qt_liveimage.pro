@@ -30,7 +30,7 @@ DISTFILES += \
     ../../../../var/www/html/stream.php \
     ../../../../var/www/html/stream2.php \
     ../../../../var/www/html/upload.php \
-    ../bin/liveimage.conf \
+    ../liveimage.conf \
     ../liveimage.conf
 
 HEADERS += \

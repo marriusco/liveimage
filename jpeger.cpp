@@ -41,7 +41,7 @@ jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
 
 jpeger::~jpeger()
 {
-    delete[] _image;//dtor
+    free (_image);//dtor
 }
 
 uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
@@ -49,15 +49,10 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
 {
     if(_image==0)
     {
-        _memsz = ((w * h) / 7);
+        _memsz = ((w * h) / 8);
         std::cout << "NEW" << w << "x"<< h << "=" << _memsz << "\r\n";
-        try{
-            _image = new uint8_t[_memsz]; // this should be enough ?!?
-        }catch(...)
-        {
-            std::cout << "ERROR" << w << "x"<< h << "=" << _memsz << "\r\n";
-            return (0);
-        }
+        _image = (uint8_t*)malloc(_memsz);
+
     }
     if(_image == 0)
     {
@@ -199,9 +194,6 @@ void jpeger:: _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize)
                 (*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT,
                                            sizeof(mem_destination_mgr));
     }
-
-   // std::cout << __FUNCTION__ << bufsize  << ":"<< ((size_t)buf) <<"\r\n";
-
     dest = (mem_dest_ptr) cinfo->dest;
     dest->pub.init_destination    = _init_destination;
     dest->pub.empty_output_buffer = _empty_output_buffer;
@@ -224,8 +216,8 @@ static boolean  _empty_output_buffer(j_compress_ptr cinfo)
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
     dest->pub.next_output_byte = dest->buf;
     dest->pub.free_in_buffer = dest->bufsize;
-    return FALSE;
     ERREXIT(cinfo, JERR_BUFFER_SIZE);
+    return FALSE;
 }
 
 static void _term_destination(j_compress_ptr cinfo)

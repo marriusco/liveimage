@@ -1,3 +1,5 @@
+
+#include <assert.h>
 #include "motion.h"
 #include "liconfig.h"
 
@@ -6,25 +8,28 @@ mmotion::mmotion(int w, int h, int nr):_wind(w,h),_w(w),_h(h),_nr(nr)
 {
     _mw = GCFG->_glb.motionw;
     if(_mw>=w)
-        _mw=w/2;
+        _mw=w/4;
     else if(_mw<64)
         _mw=64;
     _mh = (_mw * _h) / _w;
     size_t msz = (_mw) * (_mh);
     float ratio = (float)_mw/(float)w;
 
+    if(GCFG->_glb.rmotionrect[2]>_w)GCFG->_glb.rmotionrect[2]=_w;
+    if(GCFG->_glb.rmotionrect[3]>_h)GCFG->_glb.rmotionrect[3]=_h;
+
     _motion_rect[0]=GCFG->_glb.rmotionrect[0]*ratio;
     _motion_rect[1]=GCFG->_glb.rmotionrect[1]*ratio;
     _motion_rect[2]=GCFG->_glb.rmotionrect[2]*ratio;
     _motion_rect[3]=GCFG->_glb.rmotionrect[3]*ratio;
-    if(_motion_rect[0]==0 && _motion_rect[1]==0)
+    if(_motion_rect[2]==0 && _motion_rect[3]==0)
     {
         _motion_rect[0]=0;
         _motion_rect[1]=0;
         _motion_rect[2]=_mw;
         _motion_rect[3]=_mh;
     }
-    
+
     _motionbufs[0] = new uint8_t[msz];
     _motionbufs[1] = new uint8_t[msz];
     _motionbufs[2] = new uint8_t[msz];
@@ -61,19 +66,27 @@ int mmotion::has_moved(uint8_t* fmt420)
     _dark  = 0;
     _moves = 0;
     _wind.reset(_mw,_mh);
-    for (int y= 0; y <_mh; ++y)//height
+    for (int y= 0; y <_mh-dy; y++)             //height
     {
-        for (int x = 0; x < _mw; ++x)//width
+        for (int x = 0; x < _mw-dx; x++)       //width
         {
             if(x<_motion_rect[0])continue;
             if(x>_motion_rect[2])continue;
             if(y<_motion_rect[1])continue;
             if(y>_motion_rect[3])continue;
+
             Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent pixel
+
+            assert((base_py+((y*dy)  * _w) + (x*dx)) < base_py + (_h*_w));
+
             _dark += uint32_t(Y);
             Y /= _nr; Y *= _nr;
-            *(prowcur + (y * _mw)+x) = Y;       // build new video buffer
+
+            *(prowcur + (y * _mw) + x) = Y;       // build new video buffer
             YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
+
+            assert((prowprev+(y  * _mw) + (x)) < base_py + _motionsz);
+
             int diff = Y - YP;
             if(diff<mdiff)
             {
@@ -98,15 +111,18 @@ int mmotion::has_moved(uint8_t* fmt420)
 
     }
 
-    for (int y= _motion_rect[1]; y <_motion_rect[3]; ++y)
+    pSeen = _motionbufs[2];
+    //[x,y,X,Y]
+    for (int y= _motion_rect[1]+1; y <_motion_rect[3]-1; ++y)
     {
-        *(pSeen + (y * _mw)+_motion_rect[0]) = (uint8_t)92;
-        *(pSeen + (y * _mw)+_motion_rect[2]) = (uint8_t)92;
+
+        *(pSeen + (y * _mw) + _motion_rect[1]) = (uint8_t)92;
+        *(pSeen + (y * _mw) + _motion_rect[3]) = (uint8_t)92;
     }
-    for (int x = _motion_rect[0]; x < _motion_rect[2]; ++x)
+    for (int x = _motion_rect[0]-1; x < _motion_rect[2]-1; ++x)
     {
-        *(pSeen + (_motion_rect[1] * _mw)+x) = (uint8_t)92;
-        *(pSeen + (_motion_rect[3] * _mw)+x) = (uint8_t)92;
+        *(pSeen + (_motion_rect[0] * _mw) + x) = (uint8_t)92;
+        *(pSeen + (_motion_rect[2] * _mw) + x) = (uint8_t)92;
     }
 
     const wind::Rect& reject = _wind.reject(_moves);

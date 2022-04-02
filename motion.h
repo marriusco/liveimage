@@ -194,6 +194,7 @@ private:
     int       _nr;
     int       _mmeter;
     int       _motion_rect[4]; //x/y/w/h
+
 };
 
 
