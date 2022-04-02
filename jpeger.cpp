@@ -19,6 +19,8 @@
 #include <iostream>
 #include "jpeger.h"
 
+
+#define BLOCK_SZ	16384
 extern bool __alive;
 
 typedef struct
@@ -34,9 +36,11 @@ static void     _init_destination(j_compress_ptr cinfo);
 static boolean  _empty_output_buffer(j_compress_ptr cinfo);
 static void     _term_destination(j_compress_ptr cinfo);
 static int      _jpeg_mem_size(j_compress_ptr cinfo);
+static jpeger*  _pthis;
 
 jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
 {
+    _pthis=this;
 }
 
 jpeger::~jpeger()
@@ -213,11 +217,26 @@ static void  _init_destination(j_compress_ptr cinfo)
 
 static boolean  _empty_output_buffer(j_compress_ptr cinfo)
 {
+/*
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
     dest->pub.next_output_byte = dest->buf;
     dest->pub.free_in_buffer = dest->bufsize;
     ERREXIT(cinfo, JERR_BUFFER_SIZE);
     return FALSE;
+*/
+    size_t oldsize = _pthis->_memsz;
+    uint8_t* nb = ::malloc(oldsize + BLOCK_SZ);
+    if(nb==false){
+	std::cerr<<__FUNCTION__<<" out of memory \r\n";
+	return FALSE;
+    }
+    ::memcpy(nb, _pthis->_image, oldsize);
+    ::free(_pthis->_image);
+    _pthis->_image=nb;
+    _pthis->_memsz = oldsize+BLOCK_SZ;
+    cinfo->dest->next_output_byte = _pthis->_image+oldsize;
+    cinfo->dest->free_in_buffer = BLOCK_SZ;
+    return TRUE;
 }
 
 static void _term_destination(j_compress_ptr cinfo)

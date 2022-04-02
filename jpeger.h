@@ -45,7 +45,8 @@ private:
 				   struct tm *tm);
 
 	void _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize);
-private:
+
+public:
     uint8_t*    _image;
     int         _jpegQuality;
     uint32_t    _imgsize;

@@ -7,27 +7,32 @@
 mmotion::mmotion(int w, int h, int nr):_wind(w,h),_w(w),_h(h),_nr(nr)
 {
     _mw = GCFG->_glb.motionw;
-    if(_mw>=w)
-        _mw=w/4;
-    else if(_mw<64)
-        _mw=64;
+    if(_mw>=w/4)
+	 _mw=w/4;
+    else if(_mw<32)
+        _mw=32;
     _mh = (_mw * _h) / _w;
+
     size_t msz = (_mw) * (_mh);
     float ratio = (float)_mw/(float)w;
 
-    if(GCFG->_glb.rmotionrect[2]>_w)GCFG->_glb.rmotionrect[2]=_w;
-    if(GCFG->_glb.rmotionrect[3]>_h)GCFG->_glb.rmotionrect[3]=_h;
+    if(GCFG->_glb.rmotionrect[2] >= _w)
+	GCFG->_glb.rmotionrect[2]=_w-1;
 
-    _motion_rect[0]=GCFG->_glb.rmotionrect[0]*ratio;
-    _motion_rect[1]=GCFG->_glb.rmotionrect[1]*ratio;
-    _motion_rect[2]=GCFG->_glb.rmotionrect[2]*ratio;
-    _motion_rect[3]=GCFG->_glb.rmotionrect[3]*ratio;
+    if(GCFG->_glb.rmotionrect[3] >= _h)
+	GCFG->_glb.rmotionrect[3]=_h-1;
+
+    _motion_rect[0]=GCFG->_glb.rmotionrect[0] * ratio;
+    _motion_rect[1]=GCFG->_glb.rmotionrect[1] * ratio;
+    _motion_rect[2]=GCFG->_glb.rmotionrect[2] * ratio;
+    _motion_rect[3]=GCFG->_glb.rmotionrect[3] * ratio;
+
     if(_motion_rect[2]==0 && _motion_rect[3]==0)
     {
-        _motion_rect[0]=0;
-        _motion_rect[1]=0;
-        _motion_rect[2]=_mw;
-        _motion_rect[3]=_mh;
+        _motion_rect[0]=0;	//0 x
+        _motion_rect[1]=0;	//1 y
+        _motion_rect[2]=_mw;	//2  X
+        _motion_rect[3]=_mh;	//3  Y
     }
 
     _motionbufs[0] = new uint8_t[msz];
@@ -52,17 +57,16 @@ mmotion::~mmotion()
 int mmotion::has_moved(uint8_t* fmt420)
 {
     register uint8_t *base_py = fmt420;
+    register uint8_t*          pSeen = _motionbufs[2];
+    register uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
+    register uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
     int               dx = _w / _mw;
     int               dy = _h / _mh;
-    uint8_t*          pSeen = _motionbufs[2];
-    uint8_t*          prowprev = _motionbufs[_motionindex ? 0 : 1];
-    uint8_t*          prowcur = _motionbufs[_motionindex ? 1 : 0];
     int               pixels = 0;
-    int               mdiff = GCFG->_glb.motiondiff * 2.55;
+    int               mdiff  = GCFG->_glb.motiondiff * 2.55;
     uint8_t           Y,YP ;
 
-    if(mdiff<1)
-        mdiff=4;
+    if(mdiff<1){  mdiff=4; }
     _dark  = 0;
     _moves = 0;
     _wind.reset(_mw,_mh);
@@ -75,20 +79,17 @@ int mmotion::has_moved(uint8_t* fmt420)
             if(y<_motion_rect[1])continue;
             if(y>_motion_rect[3])continue;
 
-            Y  = *(base_py+((y*dy)  * _w) + (x*dx)); /// curent pixel
+            Y  = *(base_py + ((y*dy)  * _w) + (x*dx)); /// curent pixel
 
-            assert((base_py+((y*dy)  * _w) + (x*dx)) < base_py + (_h*_w));
-
-            _dark += uint32_t(Y);
+            _dark += uint32_t(Y);		   //  noise and dark
             Y /= _nr; Y *= _nr;
 
             *(prowcur + (y * _mw) + x) = Y;       // build new video buffer
-            YP = *(prowprev+(y  * _mw) + (x));  // old buffer pixel
+            YP = *(prowprev+(y  * _mw) + (x));   // old buffer pixel
 
-            assert((prowprev+(y  * _mw) + (x)) < base_py + _motionsz);
+            int diff = abs(Y - YP);
 
-            int diff = Y - YP;
-            if(diff<mdiff)
+            if(diff < mdiff)
             {
                 diff=0;                         // black no move
                 if(_wind.accum_rect(x,y,false))
@@ -111,20 +112,21 @@ int mmotion::has_moved(uint8_t* fmt420)
 
     }
 
-    pSeen = _motionbufs[2];
     //[x,y,X,Y]
-    for (int y= _motion_rect[1]+1; y <_motion_rect[3]-1; ++y)
+    for (int y= _motion_rect[1]+1; y <_motion_rect[3]-1; y++)
     {
-
-        *(pSeen + (y * _mw) + _motion_rect[1]) = (uint8_t)92;
-        *(pSeen + (y * _mw) + _motion_rect[3]) = (uint8_t)92;
+        *(pSeen + (y * _mw) + _motion_rect[0]) = (uint8_t)192;
+        *(pSeen + (y * _mw) + _motion_rect[2]) = (uint8_t)192;
     }
-    for (int x = _motion_rect[0]-1; x < _motion_rect[2]-1; ++x)
+/*
+    for (int x = _motion_rect[0]+1; x < _motion_rect[2]-1; x++)
     {
-        *(pSeen + (_motion_rect[0] * _mw) + x) = (uint8_t)92;
-        *(pSeen + (_motion_rect[2] * _mw) + x) = (uint8_t)92;
+        *(pSeen + (_motion_rect[0] * _mw) + x) = (uint8_t)192;
+        *(pSeen + (_motion_rect[2] * _mw) + x) = (uint8_t)192;
     }
+*/
 
+/*
     const wind::Rect& reject = _wind.reject(_moves);
     if(!reject.empty())
     {
@@ -139,6 +141,7 @@ int mmotion::has_moved(uint8_t* fmt420)
             *(pSeen + (reject._Y * _mw)+x) = (uint8_t)255;
         }
     }
+*/
     _moves -= _wind.movements();
 
     // show movement percentage on left as bar
