@@ -32,6 +32,7 @@ typedef struct
 } mem_destination_mgr;
 
 typedef mem_destination_mgr *mem_dest_ptr;
+
 static void     _init_destination(j_compress_ptr cinfo);
 static boolean  _empty_output_buffer(j_compress_ptr cinfo);
 static void     _term_destination(j_compress_ptr cinfo);
@@ -41,201 +42,171 @@ static jpeger*  _pthis;
 jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
 {
     _pthis=this;
+    ::memset(&_cinfo, 0, sizeof(_cinfo));
+
+    _data[0] = _y;
+    _data[1] = _cb;
+    _data[2] = _cr;
+    _cinfo.err = ::jpeg_std_error(&_jerr);
+    jpeg_create_compress(&_cinfo);
+    _jpeg_mem_dest(&_cinfo);
+
 }
 
 jpeger::~jpeger()
 {
-    free (_image);//dtor
+    jpeg_destroy_compress(&_cinfo);
+    free (_image);  //dtor
 }
 
-uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h, int isize,
-                            int quality, uint8_t** pjpeg)
+uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h,  int quality, uint8_t** pjpeg)
 {
-    if(_image==0)
-    {
-        _memsz = ((w * h) / 8);
-        std::cout << "NEW" << w << "x"<< h << "=" << _memsz << "\r\n";
-        _image = (uint8_t*)malloc(_memsz);
-
-    }
-    if(_image == 0)
-    {
-        std::cerr <<  "out of memory" << DERR();
-        __alive=false;
-        return 0;
-    }
-    try{
-        _imgsize =  _put_jpeg_yuv420p_memory(_image, isize, fmt420, w, h, quality, 0);
-    }catch(...)
-    {
-        std::cerr <<  "out of memory" << DERR();
-        exit(1);
-    }
+    _imgsize =  _put_jpeg_yuv420p_memory(fmt420, w, h, quality, 0);
     *pjpeg = _image;
     return  _imgsize;
 }
 
 
-uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h, int imgsz,
-                           int quality, uint8_t** pjpeg)
+uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h,  int quality, uint8_t** pjpeg)
 {
-
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+    (void)quality;
     JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
     int row_stride;
 
     memset(_image,255, _memsz);
 
-
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_compress(&cinfo);
-
-    _jpeg_mem_dest(&cinfo, _image, imgsz);
-
-    cinfo.image_width = w;
-    cinfo.image_height = h;
-    cinfo.input_components = 1;
-    cinfo.in_color_space = JCS_GRAYSCALE;
-    jpeg_set_defaults(&cinfo);
-    jpeg_set_colorspace(&cinfo, JCS_GRAYSCALE);
-    cinfo.dct_method = JDCT_FASTEST;
-
-    jpeg_set_quality(&cinfo, 80, TRUE /* limit to baseline-JPEG values */);
-
-
-    jpeg_start_compress(&cinfo, TRUE);
+    _cinfo.image_width = w;
+    _cinfo.image_height = h;
+    _cinfo.input_components = 1;
+    _cinfo.in_color_space = JCS_GRAYSCALE;
+    jpeg_set_defaults(&_cinfo);
+    jpeg_set_colorspace(&_cinfo, JCS_GRAYSCALE);
+    _cinfo.dct_method = JDCT_FASTEST;
+    jpeg_set_quality(&_cinfo, 80, TRUE /* limit to baseline-JPEG values */);
+    jpeg_start_compress(&_cinfo, TRUE);
     row_stride = w ;
 
-
-    while (cinfo.next_scanline < cinfo.image_height)
+    while (_cinfo.next_scanline < _cinfo.image_height)
     {
-        row_pointer[0] = (unsigned char*)&uint8buf[cinfo.next_scanline * row_stride];
-        (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+        row_pointer[0] = (unsigned char*)&uint8buf[_cinfo.next_scanline * row_stride];
+        (void) jpeg_write_scanlines(&_cinfo, row_pointer, 1);
     }
 
-    jpeg_finish_compress(&cinfo);
-    int jpeg_imgsz = _jpeg_mem_size(&cinfo);
+    jpeg_finish_compress(&_cinfo);
+    int jpeg_imgsz = _jpeg_mem_size(&_cinfo);
     *pjpeg = _image;
-    jpeg_destroy_compress(&cinfo);
 
     return jpeg_imgsz;
 }
 
 
-int jpeger::_put_jpeg_yuv420p_memory(uint8_t *pdest,
-                                     int imgsz,
-                                     const uint8_t *pyuv420,
+int jpeger::_put_jpeg_yuv420p_memory(const uint8_t *pyuv420,
                                      int width,
                                      int height,
                                      int quality,
                                      struct tm *tm)
 {
     int i, j, jpeg_imgsz;
-    JSAMPROW y[8],cb[8],cr[8];
-    JSAMPARRAY data[3];
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+    (void)tm;
 
-    memset(&cinfo, 0, sizeof(cinfo));
-
-    data[0] = y;
-    data[1] = cb;
-    data[2] = cr;
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_compress(&cinfo);
-
-    _jpeg_mem_dest(&cinfo, pdest, imgsz);
-
-    cinfo.image_width = width;
-    cinfo.image_height = height;
-    cinfo.input_components = 3;
-    jpeg_set_defaults(&cinfo);
-    jpeg_set_colorspace(&cinfo, JCS_YCbCr);
-    cinfo.raw_data_in = TRUE;
+    _cinfo.image_width = width;
+    _cinfo.image_height = height;
+    _cinfo.input_components = 3;
+    jpeg_set_defaults(&_cinfo);
+    jpeg_set_colorspace(&_cinfo, JCS_YCbCr);
+    _cinfo.raw_data_in = TRUE;
 #if JPEG_LIB_VERSION >= 70
-    cinfo.do_fancy_downsampling = FALSE;
+    _cinfo.do_fancy_downsampling = FALSE;
 #endif
-    cinfo.comp_info[0].h_samp_factor = 2;
-    cinfo.comp_info[0].v_samp_factor = 2;
-    cinfo.comp_info[1].h_samp_factor = 1;
-    cinfo.comp_info[1].v_samp_factor = 1;
-    cinfo.comp_info[2].h_samp_factor = 1;
-    cinfo.comp_info[2].v_samp_factor = 1;
+    _cinfo.comp_info[0].h_samp_factor = 2;
+    _cinfo.comp_info[0].v_samp_factor = 2;
+    _cinfo.comp_info[1].h_samp_factor = 1;
+    _cinfo.comp_info[1].v_samp_factor = 1;
+    _cinfo.comp_info[2].h_samp_factor = 1;
+    _cinfo.comp_info[2].v_samp_factor = 1;
 
-    jpeg_set_quality(&cinfo, quality, 0);
-    cinfo.dct_method = JDCT_FASTEST;
+    jpeg_set_quality(&_cinfo, quality, 0);
+    _cinfo.dct_method = JDCT_FASTEST;
 
-    jpeg_start_compress(&cinfo, TRUE);
+    jpeg_start_compress(&_cinfo, TRUE);
 
     for (j = 0; j < height; j += 16)
     {
         for (i = 0; i < 16; i++)
         {
-            y[i] = ( unsigned char*)pyuv420 + width * (i + j);
+            _y[i] = ( unsigned char*)pyuv420 + width * (i + j);
 
             if (i % 2 == 0)
             {
-                cb[i / 2] = ( unsigned char*)pyuv420 + width * height + width / 2 * ((i + j) /2);
-                cr[i / 2] = ( unsigned char*)pyuv420 + width * height + width * height / 4 + width / 2 * ((i + j) / 2);
+                _cb[i / 2] = ( unsigned char*)pyuv420 + width * height + width / 2 * ((i + j) /2);
+                _cr[i / 2] = ( unsigned char*)pyuv420 + width * height + width * height / 4 + width / 2 * ((i + j) / 2);
             }
         }
-        jpeg_write_raw_data(&cinfo, data, 16);
+        jpeg_write_raw_data(&_cinfo, _data, 16);
     }
-    jpeg_finish_compress(&cinfo);
-    jpeg_imgsz = _jpeg_mem_size(&cinfo);
-    jpeg_destroy_compress(&cinfo);
+    jpeg_finish_compress(&_cinfo);
+    jpeg_imgsz = _jpeg_mem_size(&_cinfo);
+
     return jpeg_imgsz;
 }
 
-void jpeger:: _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize)
+void jpeger:: _jpeg_mem_dest(j_compress_ptr cinfo)
 {
     mem_dest_ptr dest;
 
     if (cinfo->dest == NULL)
     {
         cinfo->dest = (struct jpeg_destination_mgr *)
-                (*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT,
+                (*cinfo->mem->alloc_small)((j_common_ptr)cinfo,
+                                           JPOOL_PERMANENT,
                                            sizeof(mem_destination_mgr));
     }
     dest = (mem_dest_ptr) cinfo->dest;
     dest->pub.init_destination    = _init_destination;
     dest->pub.empty_output_buffer = _empty_output_buffer;
     dest->pub.term_destination    = _term_destination;
-    dest->buf      = buf;
-    dest->bufsize  = bufsize;
+
+    dest->buf      = _image = (uint8_t*)malloc(BLOCK_SZ);
+    dest->bufsize  = _memsz = BLOCK_SZ;
     dest->jpegsize = 0;
+
+    _init_destination(&_cinfo);
+
+    // std::cout << "      JPEGER MEM DEST \r\n";
+
 }
 
 static void  _init_destination(j_compress_ptr cinfo)
 {
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
-    dest->pub.next_output_byte = dest->buf;
-    dest->pub.free_in_buffer = dest->bufsize;
+    dest->pub.next_output_byte  = dest->buf;
+    dest->pub.free_in_buffer    = dest->bufsize;
     dest->jpegsize = 0;
+
+    // std::cout << "      JPEGER INIT TO "<<dest->buf <<","<<dest->bufsize << "bytes \r\n";
 }
 
 static boolean  _empty_output_buffer(j_compress_ptr cinfo)
 {
-/*
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
-    dest->pub.next_output_byte = dest->buf;
-    dest->pub.free_in_buffer = dest->bufsize;
-    ERREXIT(cinfo, JERR_BUFFER_SIZE);
-    return FALSE;
-*/
+
     size_t oldsize = _pthis->_memsz;
-    uint8_t* nb = ::malloc(oldsize + BLOCK_SZ);
-    if(nb==false){
-	std::cerr<<__FUNCTION__<<" out of memory \r\n";
-	return FALSE;
+    uint8_t* nb = (uint8_t*)::malloc(oldsize + BLOCK_SZ);
+    if(nb==nullptr){
+        std::cerr<<__FUNCTION__<<" out of memory \r\n";
+        return FALSE;
     }
     ::memcpy(nb, _pthis->_image, oldsize);
     ::free(_pthis->_image);
-    _pthis->_image=nb;
+    _pthis->_image = nb;
     _pthis->_memsz = oldsize+BLOCK_SZ;
-    cinfo->dest->next_output_byte = _pthis->_image+oldsize;
-    cinfo->dest->free_in_buffer = BLOCK_SZ;
+
+    dest->pub.next_output_byte = _pthis->_image  + oldsize;
+    dest->pub.free_in_buffer = BLOCK_SZ;
+    dest->buf = _pthis->_image;
+    dest->bufsize = _pthis->_memsz;
+
+    // std::cout << "      JPEGER REALLOC TO "<<dest->buf <<","<<dest->bufsize << "bytes \r\n";
     return TRUE;
 }
 
@@ -243,12 +214,16 @@ static void _term_destination(j_compress_ptr cinfo)
 {
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
     size_t jpgsize = dest->bufsize -cinfo->dest->free_in_buffer;
+    dest->jpegsize = jpgsize;
 
-    dest->jpegsize = dest->bufsize - dest->pub.free_in_buffer;
+    // std::cout << "      JPEGER TERM \r\n";
 }
 
 static int _jpeg_mem_size(j_compress_ptr cinfo)
 {
     mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
+
+    // std::cout << "      JPEG SZ "<<dest->jpegsize<<"\r\n" ;
+
     return dest->jpegsize;
 }

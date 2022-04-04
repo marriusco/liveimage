@@ -397,7 +397,6 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
         return 0;
     }
 
-    time_t cur = time(0);
     if(_motionhi )//&& cur -_lasttime > 1)
     {
         _moved = _pmt->has_moved((uint8_t*)_buffers[_curbuffer].start);

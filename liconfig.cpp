@@ -85,6 +85,7 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
     char    lpred[256];
     char    loco[256];
 
+    (void)line;
     ::strcpy(loco, val);
     ::strcpy(lpred, pred);
     try
@@ -121,6 +122,8 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, windcheck);
             BIND(_glb, maxfiles);
             BIND(_glb, webcast);
+            BIND(_glb, checkcast);
+            BIND(_glb, webms);
             BIND(_glb, transport);
             BIND(_glb, kodek);
         }

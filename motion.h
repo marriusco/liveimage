@@ -109,6 +109,7 @@ public:
     }
     const Rect& currect(int allmoves)
     {
+        (void)allmoves;
         return _curRect;
     }
 

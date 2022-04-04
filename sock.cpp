@@ -223,6 +223,8 @@ SOCKET sock::create(int , int , const char* )
 //-----------------------------------------------------------------------------
 SOCKET sock::create(const SADDR_46& r, int opt)
 {
+    (void)r;
+    (void)opt;
     return (SOCKET)-1;
 }
 
@@ -331,8 +333,9 @@ int  sock::select_receive(unsigned char* buff, int length, int toutms , int wait
         {
             FD_CLR(_thesock, &rdSet);
             bytes = receive(buff, length);
-            if(0 == bytes)
+            if(bytes<=0)
             {
+                _error = errno;
                 return 0; //remote closed the socket
             }
             return bytes;
@@ -380,7 +383,17 @@ char* tcp_sock::getsocketaddr_str(char* pAddr)const
     return pAddr;
 }
 
-int tcp_sock::receiveall(const unsigned char* buff, const int length)
+bool    tcp_sock::isopen()const
+{
+    return sock::isopen();
+}
+
+bool tcp_sock::destroy(bool b)
+{
+    return sock::destroy(b);
+}
+
+int tcp_sock::receiveall(unsigned char* buff, const int length)
 {
     int shot = 0;
     int toreceive = length;
@@ -414,6 +427,7 @@ int     tcp_sock::sendall(const unsigned char* buff, int length, int tout)
         if(shot <= 0)
         {
             _error = errno;
+            std::cout << "send() " << strerror(errno) << " \n";
             if(_error==0)break;
             if(_error == EAGAIN || _error==11)
             {
@@ -424,11 +438,13 @@ int     tcp_sock::sendall(const unsigned char* buff, int length, int tout)
                 usleep(10000); // 10 milliseconds
                 continue;
             }
+            this->destroy();
             break;
         }
         length -= shot;
         sent   += shot;
     }
+    //std::cout << "send() returns  " << sent <<"\n";
     return sent;
 }
 
@@ -486,6 +502,7 @@ int tcp_sock::receive(unsigned char* buff, int length, int , const char* )
 //-----------------------------------------------------------------------------
 bool sock::destroy(bool emptyit)
 {
+    (void)emptyit;
     bool b=false;
     _set = 0;
     if((int)_thesock > 0)
@@ -554,6 +571,11 @@ tcp_cli_sock& tcp_cli_sock::operator=(const tcp_cli_sock& s)
     }
     return *this;
 }
+bool    tcp_cli_sock::isopen()const
+{
+    return tcp_sock::isopen();
+}
+
 
 bool tcp_cli_sock::is_really_connected()
 {
@@ -599,6 +621,8 @@ bool    tcp_cli_sock::destroy(bool emptyit)
     return sock::destroy(emptyit);
 }
 
+
+
 /*
 //-----------------------------------------------------------------------------
 const char*  tcp_cli_sock::tcp_cli_sock()
@@ -621,8 +645,8 @@ tcp_sock::tcp_sock()
 SOCKET tcp_sock::create(int , int opt, const char* )
 {
     _error = 0;
-    ::memset(&_local_sin,0,sizeof(_local_sin));
-    ::memset(&_remote_sin,0,sizeof(_remote_sin));
+    _local_sin.reset();
+    _remote_sin.reset();
     assert(_thesock<=0);
     _thesock = ::socket(AF_INET, SOCK_STREAM, 0);
     if((int)_thesock < 0)
@@ -687,8 +711,8 @@ tcp_srv_sock::~tcp_srv_sock() {}
 SOCKET tcp_srv_sock::create(int port, int opt, const char* iface)
 {
     _error = 0;
-    ::memset(&_local_sin,0,sizeof(_local_sin));
-    ::memset(&_remote_sin,0,sizeof(_remote_sin));
+    _local_sin.reset();
+    _remote_sin.reset();
     assert(_thesock<=0);
     _thesock = ::socket(AF_INET, SOCK_STREAM, 0);
     if(_thesock <= 0)
@@ -752,7 +776,7 @@ SOCKET tcp_srv_sock::accept(tcp_cli_sock& cliSock)
 {
     _error = 0;
 
-    ::memset(&cliSock._remote_sin,0,sizeof(cliSock._remote_sin));
+    cliSock._remote_sin.reset();
     socklen_t clilen = (socklen_t)sizeof(cliSock._remote_sin);
     cliSock._thesock = ::accept(_thesock,
                                 (struct sockaddr*)&cliSock._remote_sin,
@@ -761,24 +785,32 @@ SOCKET tcp_srv_sock::accept(tcp_cli_sock& cliSock)
     {
         printf("accept: %d %s\n", errno, strerror(errno));
         _error = errno;
+        cliSock.destroy();
+        return 0;
     }
     if(_buffers[0] && _buffers[1])
     {
         set_option(SO_SNDBUF,_buffers[0]);
         set_option(SO_RCVBUF,_buffers[1]);
     }
-
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    ::getpeername(cliSock._thesock, (struct sockaddr *)&cliSock._remote_sin,
+                                    &addr_size);
+    cliSock._remote_sin.commit();
+    /// std::cout << cliSock._remote_sin.c_str() << "\n";
     return cliSock._thesock;
 }
 
 SOCKET tcp_cli_sock::create(const SADDR_46& r, int opt)
 {
+    (void)r;
     return create(0,opt,0);
 }
 
 //-----------------------------------------------------------------------------
 SOCKET tcp_cli_sock::create(int , int opt, const char* iface)
 {
+    (void)iface;
     _hostent = 0;
     assert(_thesock<=0);
     _thesock = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -814,7 +846,7 @@ int tcp_cli_sock::try_connect(const char* sip, int port)
     _connecting = 0;
     _error      = 0;
     ::memcpy((char*)&(_remote_sin.sin_addr), _hostent->h_addr, _hostent->h_length);
-    this->set_blocking(_blocking);
+    // this->set_blocking(_blocking);
     _remote_sin.sin_family		= AF_INET;
     _remote_sin.sin_port		= htons(port);
 
@@ -823,9 +855,40 @@ int tcp_cli_sock::try_connect(const char* sip, int port)
         _error = errno;
         if(_error==EINPROGRESS || _error == WOULDBLOCK)
         {
-            sleep(3);
-            _connecting = 1; //in progress
-            return -1; //in progress
+   fd_set writeFDS;
+    fd_set exceptFDS;
+
+    //  Clear all the socket FDS structures
+    FD_ZERO( &writeFDS );
+    FD_ZERO( &exceptFDS );
+
+    //  Put the socket into the FDS structures
+    FD_SET( _thesock, &writeFDS );
+    FD_SET( _thesock, &exceptFDS );
+    timeval timeout={20,0};
+    int selectReturn = ::select( _thesock + 1
+                               , NULL
+                               , &writeFDS
+                               , &exceptFDS
+                               , &timeout);
+
+    //  Check if ::select() has timed out, if so, connection wasn't successful!
+    if ( selectReturn == 0 )
+    {
+        return 0;
+    }
+
+    if ( FD_ISSET( _thesock, &writeFDS ) )
+    {
+        return _thesock;
+    }
+
+    //  Check for error (exception)
+    if ( FD_ISSET( _thesock, &exceptFDS ) )
+    {
+        return 0;
+    }
+
         }
         return 0;
     }
@@ -1147,7 +1210,7 @@ SOCKET udp_sock::create(int port, int proto, const char* addr)
     _thesock = ::socket(AF_INET, SOCK_DGRAM, proto);
     if((int)-1 == (int)_thesock)
         return -1;
-    ::memset(&_local_sin, 0, sizeof(_local_sin));
+    _local_sin.reset();
 
     _local_sin.sin_family        = AF_INET;
     _local_sin.sin_addr.s_addr   = addr ? inet_addr(addr): htonl(INADDR_ANY);
@@ -1157,8 +1220,11 @@ SOCKET udp_sock::create(int port, int proto, const char* addr)
 
 int  udp_sock::bind(const char* addr, int port)
 {
+    _local_sin.reset();
     if(addr)
         _local_sin.sin_addr.s_addr = inet_addr(addr);
+    else
+        _local_sin.sin_addr.s_addr = htonl(INADDR_ANY);
     if(port)
         _local_sin.sin_port = htons(port);
 
@@ -1214,7 +1280,7 @@ int  udp_sock::send(const unsigned char* buff, const int length, int port, const
     }
     if(-1 == snd)
     {
-        _error = errno;
+        std::cerr << strerror(errno) << "\n";
     }
     return snd;
 }
@@ -1232,12 +1298,12 @@ int  udp_sock::send(const unsigned char* buff, const int length, const SADDR_46&
     _error = 0;
     if(_connected && rsin == _remote_sin)
     {
-        snd = ::send(_thesock,(char *)buff, length, 0);
+        snd = ::send(_thesock,(char *)buff, length, MSG_DONTWAIT);
     }
     else
     {
         ////printf("<-to %s : %d\n", IP2STR(rsin.sin_addr.s_addr), htons(rsin.sin_port));
-        snd = ::sendto(_thesock, (char*)buff, length, 0,
+        snd = ::sendto(_thesock, (char*)buff, length, MSG_DONTWAIT,
                        (struct sockaddr  *) &rsin,
                        rsin.rsz()) ;
     }
@@ -1327,7 +1393,7 @@ int  udp_sock::receive(unsigned char* buff, int length, int port, const char* ip
         }
         else
         {
-            memset(&_remote_sin,0,sizeof(_remote_sin));
+            _remote_sin.reset();
             socklen_t iRecvLen   = _remote_sin.rsz();
             rcv =  (int)recvfrom (_thesock, (char*)buff, length,
                                   0,
@@ -1539,4 +1605,74 @@ Ip2str::Ip2str(const u_int32_t dw){
                       (int) ((dw >>16) & 0xFF),
                       (int) ((dw >>8) & 0xFF),
                       (int) (dw  & 0xFF));
+}
+
+std::string macaddr()
+{
+    /*
+    struct ifreq s;
+    int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    char out[32];
+
+    sprintf(out,"%012X",rand());
+    std::string ret=out;
+
+    strcpy(s.ifr_name, "eth0");
+    if (0 == ioctl(fd, SIOCGIFHWADDR, &s))
+    {
+        int i;
+        ret.clear();
+        for (i = 0; i < 6; ++i)
+        {
+            sprintf(out, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
+            ret+=out;
+        }
+        close(fd);
+        return  ret;
+    }
+
+    strcpy(s.ifr_name, "eno1");
+    if (0 == ioctl(fd, SIOCGIFHWADDR, &s))
+    {
+        int i;
+        ret.clear();
+        for (i = 0; i < 6; ++i)
+        {
+            sprintf(out, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
+            ret+=out;
+        }
+        close(fd);
+        return  ret;
+    }
+
+    strcpy(s.ifr_name, "wlan0");
+    if (0 == ioctl(fd, SIOCGIFHWADDR, &s))
+    {
+        int i;
+        ret.clear();
+        for (i = 0; i < 6; ++i)
+        {
+            sprintf(out, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
+            ret+=out;
+        }
+        close(fd);
+        return ret;
+    }
+
+    strcpy(s.ifr_name, "wlan1");
+    if (0 == ioctl(fd, SIOCGIFHWADDR, &s))
+    {
+        int i;
+        for (i = 0; i < 6; ++i)
+        {
+            ret.clear();
+            sprintf(out, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
+            ret+=out;
+        }
+        close(fd);
+        return ret;
+    }
+    return ret;
+*/
+    return std::string();
 }

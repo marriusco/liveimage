@@ -21,17 +21,13 @@ public:
     void stream_frame(uint8_t* pjpg, size_t length);
 
 private:
-    void _send_tcp(const char* host);
-    void _send_udp(const char* host);
-    eHOW _get_mode(tcp_cli_sock&,
-                   const char* host,
-                   const char* page);
+    void _send_tcp(const char* host, int port);
 
 private:
 
     mutex           _mut;
     uint8_t*        _frame  = nullptr;
-    size_t          _length = 0;
+    uint32_t        _length = 0;
     bool            _headered = false;
     std::string     _upload_page;
     time_t          _last_clicheck=0;
@@ -41,7 +37,7 @@ private:
 
 inline int parseURL(const char* url, char* scheme, size_t
                     maxSchemeLen, char* host, size_t maxHostLen,
-                    uint16_t* port, char* path, size_t maxPathLen) //Parse URL
+                    int* port, char* path, size_t maxPathLen) //Parse URL
 {
   char* schemePtr = (char*) url;
   char* hostPtr = (char*) strstr(url, "://");
@@ -51,9 +47,9 @@ inline int parseURL(const char* url, char* scheme, size_t
     return 0; //URL is invalid
   }
 
-  if( maxSchemeLen < hostPtr - schemePtr + 1 ) //including NULL-terminating char
+  if( maxSchemeLen < (size_t)(hostPtr - schemePtr + 1 )) //including NULL-terminating char
   {
-    printf("Scheme str is too small (%lu >= %d)", maxSchemeLen,
+    printf("Scheme str is too small (%lu >= %lu)", maxSchemeLen,
                                         hostPtr - schemePtr + 1);
     return 0;
   }
@@ -69,7 +65,7 @@ inline int parseURL(const char* url, char* scheme, size_t
   {
     hostLen = portPtr - hostPtr;
     portPtr++;
-    if( sscanf(portPtr, "%d", &port) != 1)
+    if( sscanf(portPtr, "%d", port) != 1)
     {
       printf("Could not find port");
       return 0;
@@ -87,7 +83,7 @@ inline int parseURL(const char* url, char* scheme, size_t
 
   if( maxHostLen < hostLen + 1 ) //including NULL-terminating char
   {
-    printf("Host str is too small (%d >= %d)", maxHostLen, hostLen + 1);
+    printf("Host str is too small (%lu >= %lu)", maxHostLen, hostLen + 1);
     return 0;
   }
   memcpy(host, hostPtr, hostLen);
@@ -106,7 +102,7 @@ inline int parseURL(const char* url, char* scheme, size_t
 
   if( maxPathLen < pathLen + 1 ) //including NULL-terminating char
   {
-    printf("Path str is too small (%d >= %d)", maxPathLen, pathLen + 1);
+    printf("Path str is too small (%lu >= %lu)", maxPathLen, pathLen + 1);
     return 0;
   }
   memcpy(path, pathPtr, pathLen);

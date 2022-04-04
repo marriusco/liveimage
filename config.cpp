@@ -8,7 +8,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, 
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -23,7 +23,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, 
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -70,9 +70,10 @@ bool Conf::load(const char* cfgFile)
     }
     if(pf==0)
     {
-        char locations[512]={0};
-        getcwd(locations, sizeof(locations)-1);
-        ::sprintf(locations, "%s/%s", locations,cfgFile);
+        char locationsp[256]={0};
+        char locations[400]={0};
+        getcwd(locationsp, sizeof(locationsp)-1);
+        ::snprintf(locations, sizeof(locations), "%s/%s", locationsp, cfgFile);
         pf = _ttfopen(locations, "rb"); if(pf) goto done;
     }
 

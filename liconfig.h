@@ -68,7 +68,7 @@ public:
             flip=0;
             motionw=256;
             httpport=0;
-
+            webms=30;
             windcomp=30;
             windcheck=8;
         maxfiles=0;
@@ -108,6 +108,8 @@ public:
         string  webcast;
         string  transport;
         string  kodek;
+        int     checkcast=10;
+    int webms;
     }_glb;
 
 };
@@ -117,12 +119,12 @@ extern LiConfig* GCFG;
 extern SADDR_46  fromstringip(const std::string& s);
 
 
-inline size_t gtc(void)
+inline time_t gtc(void)
 {
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now))
         return 0;
-    return size_t(now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0);
+    return time_t(now.tv_sec * 1000.0 + now.tv_nsec / 1000000.0);
 }
 
 

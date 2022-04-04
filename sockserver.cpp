@@ -45,7 +45,7 @@ AGAIN:
     if(_s.create(_port, SO_REUSEADDR, 0)>0)
     {
         fcntl(_s.socket(), F_SETFD, FD_CLOEXEC);
-        _s.set_blocking(0);
+        //_s.set_blocking(0);
         if(_s.listen(4)!=0)
         {
             std::cout <<"socket can't listen. Trying "<< (ntry+1) << " out of 10 " << DERR();
@@ -110,7 +110,7 @@ bool sockserver::spin()
             imgclient* cs = new imgclient();
             if(_s.accept(*cs)>0)
             {
-                cs->set_blocking(0);
+                //cs->set_blocking(0);
                 cs->_needs=0;
                 std::cout <<"new connection \n";
                 _clis.push_back(cs);
@@ -232,7 +232,6 @@ void sockserver::_clean()
     if(_dirty)
     {
 AGAIN:
-        size_t elems = _clis.size();
         for(std::vector<imgclient*>::iterator s=_clis.begin();s!=_clis.end();++s)
         {
             if((*s)->socket()<=0)

@@ -35,22 +35,28 @@ class jpeger : public outfilefmt
 public:
     jpeger(int q);
     virtual ~jpeger();
-    uint32_t convert420(const uint8_t* fmt420, int w ,int h, int isize, int quality, uint8_t** pjpeg);
-    uint32_t convertBW(const uint8_t* uint8buf, int w, int h, int isize,
+    uint32_t convert420(const uint8_t* fmt420, int w ,int h,
+                        int quality, uint8_t** pjpeg);
+    uint32_t convertBW(const uint8_t* uint8buf, int w, int h,
                            int quality, uint8_t** pjpeg);
 
 private:
-	int _put_jpeg_yuv420p_memory(uint8_t *dest_image, int image_size,
-				   const uint8_t *input_image, int width, int height, int quality,
-				   struct tm *tm);
-
-	void _jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize);
+	int _put_jpeg_yuv420p_memory(const uint8_t *pyuv420,int width, int height, int quality, struct tm *tm);
+	void _jpeg_mem_dest(j_compress_ptr cinfo);
 
 public:
-    uint8_t*    _image;
-    int         _jpegQuality;
-    uint32_t    _imgsize;
-    int         _memsz;
+
+    uint8_t*        _image=nullptr;
+    int             _jpegQuality = 0;
+    uint32_t        _imgsize = 0;
+
+
+    unsigned long   _memsz = 0;
+
+    struct jpeg_compress_struct _cinfo;
+    JSAMPROW        _y[8],_cb[8],_cr[8];
+    JSAMPARRAY      _data[3];
+    struct          jpeg_error_mgr _jerr;
 };
 
 #endif // JPEGER_H
