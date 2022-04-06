@@ -86,7 +86,6 @@ bool v4ldevice::open()
             return false;
         }
         _device = v4l2_open(_sdevice.c_str(), O_RDWR | O_NONBLOCK, 0);
-
     }
 
     if (-1 == _device)
@@ -401,7 +400,6 @@ const uint8_t* v4ldevice::read(int& w, int& h, size_t& sz, bool& fatal)
     {
         _moved = _pmt->has_moved((uint8_t*)_buffers[_curbuffer].start);
     }
-    _moved = true;
     _lasttime=time(0);
 
     return (const uint8_t*)_buffers[_curbuffer].start;

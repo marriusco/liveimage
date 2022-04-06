@@ -1,7 +1,7 @@
 [main]
 {
-
     maxfiles=8912
+
 # darkness average of pixels. motion has to be enabled 0 - 255(full bright)
 # disables timelapse snaps if dark average is under 20
     darklapse=20
@@ -10,11 +10,12 @@
 # disables motion capture snaps if dark average is under 10
     darkmotion=10
 
-# video dev driver
+# video dev driver, * will open first available
     device=/dev/video*
 
 # not used
     sigcapt=0
+
 # internal server port
     port=9000
     flip=0
@@ -24,30 +25,43 @@
 
 # what to save
     format=jpg
+
 # runs process once, takes a snap and exits
     oneshot=0
+
 # jpg quality
     quality=80
+
 # motion capture limits in pixels min,max (test and see the console logs to tune up)
-# would detect motion if motion pixels are in between
+# would detect motion if motion pixels are in between, 0,0 to disable
     motion=30,700
+
+# image size
+    imagesize=800,600
+
+# see motion only in this rect, lower then imagesize, 0,0,0,0 to full motion
+    motionrect=50,50,700,550
+
+
 # motion noise, bigger is it less noise is taken into account. muliples of 2
     motionnoise=8
+
 # does not matter
     fps=15
+
 #motion trail. captures another 3 images after a motion is detected
     motiontrail=3
-# motion trail snaps. captures at interval of 200ms 3 images (above setting)
+
+# motion trail snaps. captures at interval of 200 ms motiontrail images
     motionsnap=200
-# smaps image sizex
-#    imagesize=320,240
-    imagesize=800,600
-#    imagesize=320,240
+
+
+
 # capture an image every timelapse milliseconds. 0 disabled
     timelapse=1000
 
-# wind compensation on foliages/trees. if same motion persisi in a certain area
-# if the area where detection is seen is caotained in within same are +/- 30%
+# wind compensation on foliages/trees. if same motion persist in a certain area
+# if the area where detection is seen is cotained in within same are +/- 30%
 # is treated as wind, and is eliminated from motion.0 to disable
     windcomp=0
 
@@ -59,25 +73,20 @@ windaccum=8
 # and starts on clean slate
     windcheck=8
 
-
-
 # motion pixel difference from (previous) frame and current frame to treat it as motion
 # this is in percentage
     motiondiff=20
 #not used
     signalin=0
+
 #sends a siguser to this process PID
     userpid=0
 
-    # motion B/W image width. smaller than image size.
-    # height is calculayed from image ratio
-    motionw=200
-    motionrect=50,50,600,550
 
 ########################################################
-    #webcast = http://localhost/camera.php
-#    webcast = http://localhost:8084/camera.php
-    webcast = http://liveimage.mine.nu:8084/camera.php
-    webms=100
-    checkcast=6
+    webcast   = http://localhost:8084/cameraName
+    webms     = 100
+    checkcast = 6
+    webpass   = 111111
+    punchtru  = 0
 }

@@ -34,6 +34,7 @@ sockserver::sockserver(int port, const string& proto):_port(port),_proto(proto),
 sockserver::~sockserver()
 {
     //dtor_headered
+    close();
 }
 
 bool sockserver::listen()
@@ -139,7 +140,7 @@ bool sockserver::spin()
                         if( strstr(req, "/?live"))
                         {
                             std::cout << "          ?LIVE \n";
-                            s->_needs = WANTS_IMAGE;
+                            s->_needs = WANTS_LIVE_IMAGE;
                         }
                         else if( strstr(req, "/?motion"))
                         {
@@ -173,7 +174,7 @@ bool sockserver::spin()
     }
     _clean();
 
-    return true;
+    return _dirty;
 }
 
 bool sockserver::has_clients()
@@ -260,6 +261,15 @@ void sockserver::_send_page(imgclient* pc)
     pc->sendall(html, len);
 }
 
+bool sockserver::just_stream(const uint8_t* buff, uint32_t sz)
+{
+     for(auto& s : _clis)
+     {
+            this->_stream_video(s, buff, sz);
+     }
+     return true;
+}
+
 bool sockserver::stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, int wants)
 {
     bool rv;
@@ -271,8 +281,8 @@ bool sockserver::stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, i
             if(wants == WANTS_MOTION)
                 rv = this->_stream_image(s, buff, sz, ifmt);
             break;
-        case WANTS_IMAGE:
-            if(wants == WANTS_IMAGE)
+        case WANTS_LIVE_IMAGE:
+            if(wants == WANTS_LIVE_IMAGE)
                 rv = this->_stream_image(s, buff, sz, ifmt);
             break;
         case WANTS_VIDEO_TODO:

@@ -66,11 +66,11 @@ public:
             savelapse=200;
             motiondiff=24;
             flip=0;
-            motionw=256;
             httpport=0;
             webms=30;
             windcomp=30;
             windcheck=8;
+            method = "v4l";
         maxfiles=0;
         }
         int     darklapse;
@@ -94,7 +94,6 @@ public:
         int     userpid;
         int     w;
         int     h;
-        int     motionw;
         string  motionrect;
         int     rmotionrect[4];
         int     imotion[2];
@@ -109,6 +108,10 @@ public:
         string  transport;
         string  kodek;
         int     checkcast=10;
+        int     webpass=0;
+        int     punchtru=0;
+        int     record = 0;
+        string method;
     int webms;
     }_glb;
 

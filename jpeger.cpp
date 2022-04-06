@@ -44,9 +44,7 @@ jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
     _pthis=this;
     ::memset(&_cinfo, 0, sizeof(_cinfo));
 
-    _data[0] = _y;
-    _data[1] = _cb;
-    _data[2] = _cr;
+
     _cinfo.err = ::jpeg_std_error(&_jerr);
     jpeg_create_compress(&_cinfo);
     _jpeg_mem_dest(&_cinfo);
@@ -82,7 +80,7 @@ uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h,  int quality, 
     jpeg_set_defaults(&_cinfo);
     jpeg_set_colorspace(&_cinfo, JCS_GRAYSCALE);
     _cinfo.dct_method = JDCT_FASTEST;
-    jpeg_set_quality(&_cinfo, 80, TRUE /* limit to baseline-JPEG values */);
+    jpeg_set_quality(&_cinfo, 80, TRUE);
     jpeg_start_compress(&_cinfo, TRUE);
     row_stride = w ;
 
@@ -129,21 +127,31 @@ int jpeger::_put_jpeg_yuv420p_memory(const uint8_t *pyuv420,
     _cinfo.dct_method = JDCT_FASTEST;
 
     jpeg_start_compress(&_cinfo, TRUE);
+    do{
+        JSAMPROW        y[16],cb[8],cr[8];
+        JSAMPARRAY      data[3];
+        data[0] = y;
+        data[1] = cb;
+        data[2] = cr;
 
-    for (j = 0; j < height; j += 16)
-    {
-        for (i = 0; i < 16; i++)
+        for (j = 0; j < height; j += 16)
         {
-            _y[i] = ( unsigned char*)pyuv420 + width * (i + j);
-
-            if (i % 2 == 0)
+            for (i = 0; i < 16; i++)
             {
-                _cb[i / 2] = ( unsigned char*)pyuv420 + width * height + width / 2 * ((i + j) /2);
-                _cr[i / 2] = ( unsigned char*)pyuv420 + width * height + width * height / 4 + width / 2 * ((i + j) / 2);
+                y[i] = ( unsigned char*)pyuv420 + width * (i + j);
+
+                if (i % 2 == 0)
+                {
+
+                    cb[i / 2] = ( unsigned char*)pyuv420 + width * height + width / 2 * ((i + j) /2);
+                    cr[i / 2] = ( unsigned char*)pyuv420 + width * height + (width * height / 4)
+                                +  ((width / 2) * ((i + j) / 2) );
+
+                }
             }
+            jpeg_write_raw_data(&_cinfo, data, 16);
         }
-        jpeg_write_raw_data(&_cinfo, _data, 16);
-    }
+    }while(0);
     jpeg_finish_compress(&_cinfo);
     jpeg_imgsz = _jpeg_mem_size(&_cinfo);
 

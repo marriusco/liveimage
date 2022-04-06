@@ -6,26 +6,21 @@
 
 mmotion::mmotion(int w, int h, int nr):_wind(w,h),_w(w),_h(h),_nr(nr)
 {
-    _mw = GCFG->_glb.motionw;
-    if(_mw>=w/4)
-	 _mw=w/4;
-    else if(_mw<32)
-        _mw=32;
-    _mh = (_mw * _h) / _w;
 
-    size_t msz = (_mw) * (_mh);
-    float ratio = (float)_mw/(float)w;
+	_mw = _w/4;
+	_mh = _h/4;
 
-    if(GCFG->_glb.rmotionrect[2] >= _w)
-	GCFG->_glb.rmotionrect[2]=_w-1;
+	size_t msz = (_mw) * (_mh);
 
-    if(GCFG->_glb.rmotionrect[3] >= _h)
-	GCFG->_glb.rmotionrect[3]=_h-1;
+	if(GCFG->_glb.rmotionrect[2] >= _w)
+		GCFG->_glb.rmotionrect[2]=_w-1;
+	if(GCFG->_glb.rmotionrect[3] >= _h)
+		GCFG->_glb.rmotionrect[3]=_h-1;
 
-    _motion_rect[0]=GCFG->_glb.rmotionrect[0] * ratio;
-    _motion_rect[1]=GCFG->_glb.rmotionrect[1] * ratio;
-    _motion_rect[2]=GCFG->_glb.rmotionrect[2] * ratio;
-    _motion_rect[3]=GCFG->_glb.rmotionrect[3] * ratio;
+    _motion_rect[0] = GCFG->_glb.rmotionrect[0]/4;
+    _motion_rect[1] = GCFG->_glb.rmotionrect[1]/4;
+    _motion_rect[2] = GCFG->_glb.rmotionrect[2]/4;
+    _motion_rect[3] = GCFG->_glb.rmotionrect[3]/4;
 
     if(_motion_rect[2]==0 && _motion_rect[3]==0)
     {
@@ -118,15 +113,13 @@ int mmotion::has_moved(uint8_t* fmt420)
         *(pSeen + (y * _mw) + _motion_rect[0]) = (uint8_t)192;
         *(pSeen + (y * _mw) + _motion_rect[2]) = (uint8_t)192;
     }
-/*
+
     for (int x = _motion_rect[0]+1; x < _motion_rect[2]-1; x++)
     {
         *(pSeen + (_motion_rect[0] * _mw) + x) = (uint8_t)192;
         *(pSeen + (_motion_rect[2] * _mw) + x) = (uint8_t)192;
     }
-*/
 
-/*
     const wind::Rect& reject = _wind.reject(_moves);
     if(!reject.empty())
     {
@@ -141,7 +134,7 @@ int mmotion::has_moved(uint8_t* fmt420)
             *(pSeen + (reject._Y * _mw)+x) = (uint8_t)255;
         }
     }
-*/
+
     _moves -= _wind.movements();
 
     // show movement percentage on left as bar

@@ -5,6 +5,7 @@ CONFIG += c++11 console
 CONFIG -= app_bundle
 QMAKE_LFLAGS += -no-pie
 
+INCLUDEPATH += ./tp/jpeg-6b
 
 SOURCES += \
     ../config.cpp \
@@ -47,5 +48,6 @@ HEADERS += \
     ../webcast.h
 
 
-LIBS +=  -lpthread -lpng -ljpeg -lv4l2
+LIBS +=  -lpthread  -lv4l2 -ljpeg
+# -lavdevice - -lavformat -lavcodec -lavutil
 LIBS += -L$$usr/lib/x86_64-linux-gnu

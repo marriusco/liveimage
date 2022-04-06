@@ -24,7 +24,7 @@
 #include <vector>
 
 
-#define     WANTS_IMAGE     0x1
+#define     WANTS_LIVE_IMAGE     0x1
 #define     WANTS_VIDEO_TODO     0x2
 #define     WANTS_MOTION    0x4
 #define     WANTS_MAX       0x8
@@ -56,6 +56,7 @@ public:
     bool snap_on(  const uint8_t* jpg, uint32_t sz, const char* ifmt);
     bool stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, int wants);
     int  anyone_needs()const;
+    bool just_stream(const uint8_t* buff, uint32_t);
 
 private:
     void _clean();

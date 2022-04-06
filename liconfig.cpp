@@ -112,7 +112,6 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, motionsnap);
             BIND(_glb, motiondiff);
             BIND(_glb, motiontrail);
-            BIND(_glb, motionw);
             BIND(_glb, motionrect)
 
             BIND(_glb, savelapse);
@@ -123,9 +122,14 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, maxfiles);
             BIND(_glb, webcast);
             BIND(_glb, checkcast);
+            BIND(_glb, webpass);
+            BIND(_glb, punchtru);
+            BIND(_glb, record);
+
             BIND(_glb, webms);
             BIND(_glb, transport);
             BIND(_glb, kodek);
+            BIND(_glb, method)
         }
     }
     catch(int done) {}

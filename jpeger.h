@@ -54,8 +54,7 @@ public:
     unsigned long   _memsz = 0;
 
     struct jpeg_compress_struct _cinfo;
-    JSAMPROW        _y[8],_cb[8],_cr[8];
-    JSAMPARRAY      _data[3];
+
     struct          jpeg_error_mgr _jerr;
 };
 

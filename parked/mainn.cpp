@@ -30,6 +30,7 @@
 #include <iostream>
 #include <string>
 #include "v4ldevice.h"
+#include "v4libavdev.h"
 #include "sockserver.h"
 #include "jpeger.h"
 #include "jpeger.h"
@@ -101,6 +102,12 @@ uint32_t _imagesz(int x, int y)
 
 static void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev, std::string pathname, int firstimage, int maxfiles);
 static void calc_room(const std::string& pathname, int& curentfile, uint64_t& maxfiles);
+static void av_frm_callback(camonlibav*);
+
+struct{
+    uint8_t* pimage;
+    size_t   isize;
+}   _enc_image;
 
 
 int main(int nargs, char* vargs[])
@@ -116,50 +123,99 @@ int main(int nargs, char* vargs[])
     (void)vargs;
     LiConfig    conf("liveimage.conf");
 
-    v4ldevice   dev(conf._glb.device.c_str(),
-                    conf._glb.w, conf._glb.h,
-                    conf._glb.fps,
-                    conf._glb.imotion[0], conf._glb.imotion[1],
-            conf._glb.motionnoise);
-    if(dev.open())
+    if(conf._glb.method=="v4l")
     {
-        std::cout << conf._glb.device << " opened\n";
-        sockserver* ps = 0;
-        if(conf._glb.port)
+
+        v4ldevice   dev(conf._glb.device.c_str(),
+                        conf._glb.w, conf._glb.h,
+                        conf._glb.fps,
+                        conf._glb.imotion[0], conf._glb.imotion[1],
+                conf._glb.motionnoise);
+        if(dev.open())
         {
-            ps = new sockserver(conf._glb.port, "http");
-            if(ps && ps->listen()==false)
+            std::cout << conf._glb.device << " opened\n";
+            sockserver* ps = 0;
+            if(conf._glb.port)
             {
-                delete ps;
-                return 0;
+                ps = new sockserver(conf._glb.port, "http");
+                if(ps && ps->listen()==false)
+                {
+                    delete ps;
+                    return 0;
+                }
+            }
+
+            outfilefmt*     ffmt = 0;
+            ffmt = new jpeger(conf._glb.quality);
+
+            uint64_t maxfiles=0;
+            uint32_t maxfiles2=0;
+            int firstimage=0;
+            if(conf._glb.maxfiles==0)
+            {
+                if(!conf._glb.pathname.empty())
+                    calc_room(conf._glb.pathname, firstimage, maxfiles);
+                maxfiles2=(uint32_t)maxfiles;
+            }
+            else
+            {
+                maxfiles2 = conf._glb.maxfiles;
+            }
+            std::cout << "rotating images at:" << maxfiles2 << "\n";
+            capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles2);
+
+            delete ps;
+            dev.close();
+            delete ffmt;
+        }
+    }
+    else
+    {
+        camonlibav libav(conf._glb.device.c_str(), av_frm_callback);
+        if(libav._ok)
+        {
+            std::cout << conf._glb.device << " opened\n";
+            sockserver* ps = 0;
+            if(conf._glb.port)
+            {
+                ps = new sockserver(conf._glb.port+1, "http");
+                if(ps && ps->listen()==false)
+                {
+                    delete ps;
+                    return 0;
+                }
+            }
+            while(__alive && 0 == ::usleep(15000))
+            {
+                libav.get_frame();
+                if(ps)
+                    ps->spin();
+
+                if(ps && ps->has_clients())
+                {
+                    int wants = ps->anyone_needs();
+                    ps->stream_on(_enc_image.pimage, _enc_image.isize,"jpeg", wants);
+                }
             }
         }
-
-        outfilefmt*     ffmt = 0;
-        ffmt = new jpeger(conf._glb.quality);
-
-        uint64_t maxfiles=0;
-        uint32_t maxfiles2=0;
-        int firstimage=0;
-        if(conf._glb.maxfiles==0)
-        {
-            if(!conf._glb.pathname.empty())
-                calc_room(conf._glb.pathname, firstimage, maxfiles);
-            maxfiles2=(uint32_t)maxfiles;
-        }
-        else
-        {
-            maxfiles2 = conf._glb.maxfiles;
-        }
-        std::cout << "rotating images at:" << maxfiles2 << "\n";
-        capture(ffmt, ps, dev, conf._glb.pathname, firstimage, maxfiles2);
-
-        delete ps;
-        dev.close();
-        delete ffmt;
     }
 }
 
+static void av_frm_callback(camonlibav* plib)
+{
+    AVPacket pkt;
+    int      got_output = 0;
+
+    av_init_packet(&pkt);
+    pkt.data = NULL;    // packet data will be allocated by the encoder
+    pkt.size = 0;
+    int ret = avcodec_encode_video2(plib->_ctx,
+                                    &pkt, plib->pRawFrame, &got_output);
+    if (ret>=0 && got_output){
+        _enc_image.isize = pkt.size;
+        _enc_image.pimage = pkt.data;
+    }
+}
 
 
 void calc_room(const std::string& pathname, int& firstimage, uint64_t& maximages)
@@ -260,7 +316,10 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 robinserve = 0x1;
             }
         }
-
+        if(!cast.is_stopped())
+        {
+            cast.stream_frame(pjpg, jpgsz);
+        }
 
 
         uint32_t now =  gtc();
@@ -316,33 +375,30 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
             savemove = false;
         }
 
-        if(!cast.is_stopped())
+
+        //
+        // SAVE FILES SEQUENCIALLY ON DRIVE
+        //
+        if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
         {
-            cast.stream_frame(pjpg, jpgsz, movepix);
-        }
-        else{
-            if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
+            char fname[256];
+            ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
+            ++firstimage;
+            if(firstimage > maxfiles)  firstimage = 0;
+            FILE* 		pff = ::fopen(fname,"wb");
+            if(pff)
             {
-                char fname[256];
-                ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
-                ++firstimage;
-                if(firstimage > maxfiles)  firstimage = 0;
-                FILE* 		pff = ::fopen(fname,"wb");
-                if(pff)
+                ::fwrite(pjpg,1,jpgsz,pff);
+                ::fclose(pff);
+                std::cout << "saving: " << fname << "\n";
+                ::symlink(fname,"tmp/lastimage.jpg");
+                if(GCFG->_glb.userpid > 0)
                 {
-                    ::fwrite(pjpg,1,jpgsz,pff);
-                    ::fclose(pff);
-                    std::cout << "saving: " << fname << "\n";
-                    ::symlink(fname,"tmp/lastimage.jpg");
-                    if(GCFG->_glb.userpid > 0)
-                    {
-                        ::kill(GCFG->_glb.userpid, SIGUSR2);
-                        std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
-                    }
+                    ::kill(GCFG->_glb.userpid, SIGUSR2);
+                    std::cout << "SIGUSR2: " << GCFG->_glb.userpid << "\n";
                 }
             }
         }
-
         savelapse = false;
         savemove = false;
         movepix = 0;
