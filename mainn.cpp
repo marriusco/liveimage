@@ -353,6 +353,10 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
         if(GCFG->_glb.oneshot)
             break;
     }
-
+    if(!cast.is_stopped())
+    {
+        std::cout << "killing cast \r\n";
+        cast.kill();
+    }
     cast.stop_thread();
 }

@@ -107,12 +107,14 @@ public:
         string  webcast;
         string  transport;
         string  kodek;
-        int     checkcast=10;
-        int     webpass=0;
-        int     punchtru=0;
+        int     checkcast = 10; // to check the server
+        int     wformat = 0;
+        int     webpass = 0;
+        int     onenter = 0;
+        int     insync = 0;
         int     record = 0;
-        string method;
-    int webms;
+        string  method;
+        int     webms;
     }_glb;
 
 };

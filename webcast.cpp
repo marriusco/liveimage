@@ -7,8 +7,8 @@
 #define         PTRU_TOUT  30
 #define          PACK_ALIGN_1   __attribute__((packed, aligned(1)))
 
-
 struct  LiFrmHdr{
+    enum e_format{e_mpart_jpeg, e_jpeg, e_mov};
     uint32_t    len;
     uint32_t    magic;
     uint32_t    mac;
@@ -17,8 +17,9 @@ struct  LiFrmHdr{
     uint32_t    movepix;
     uint16_t    conport;
     uint8_t     lapse:1;
-    uint8_t     confirm:1;
-    uint8_t     record:6;
+    uint8_t     insync:1;
+    uint8_t     record:2;
+    e_format    format:4;
     char        command[16];
     char        camname[16];
 }PACK_ALIGN_1;
@@ -46,15 +47,20 @@ void WebCast::stream_frame(uint8_t* pjpg, size_t length, int movepix)
 
     if(_frame==nullptr){
         _frame = new uint8_t[length * 2];
+        if(_frame==nullptr){
+            __alive=false;
+            return;
+        }
     }
-    _length = length;
-    if(_movepix==0 && movepix){
+    if(_movepix==0)
+    {
         _movepix = movepix;
     }
     _lapse = 0;
     ::memcpy(_frame, pjpg, length);
-}
+    _length = length;
 
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void WebCast::thread_main()
@@ -88,34 +94,35 @@ void WebCast::thread_main()
     }
 }
 
+void WebCast::kill()
+{
+    _s.destroy();
+}
+
 void WebCast::_send_tcp(const char* host, const char* camname, int port)
 {
-    tcp_cli_sock    s;
     int             by;
-    bool            sendonreq = true;
-    size_t          index = 0;
     int             webms = GCFG->_glb.webms;
-    bool            framed=false;
+    int             lenhdr = 0;
     LiFrmHdr        jps;
+    int             onenter = GCFG->_glb.onenter;
     char            buffer[256];
-    struct timeval timestamp;
+    struct timeval  timestamp;
     struct timezone tz = {5,0};
+    bool needsframe = false;
 
-    s.destroy();
-    if(s.create(_cport))
+    _s.destroy();
+    if(_s.create(_cport))
     {
-        if(s.connect(host, port)){
-            std::cout << "cam stream online \r\n";
+        _s.set_blocking(1);
+        if(_s.try_connect(host, port)){
+            std::cout << "cam connected "<<host<< port<<"\r\n";
         }
         else{
-            std::cout << "cam stream offline \r\n";
+            std::cout << "cam cannot connect "<<host<< port<<"\r\n";
             goto DONE;
         }
-        for(int k=0; k < 100 && s.is_really_connected()==false;k++)
-        {
-            msleep(100);
-        }
-        if(s.is_really_connected())
+        if(_s.isopen())
         {
             std::cout << "cam stream really connected \r\n";
 
@@ -126,60 +133,129 @@ void WebCast::_send_tcp(const char* host, const char* camname, int port)
                 std::cout << "init conn with movepix " << _movepix << "\r\n";
                 jps.magic = JPEG_MAGIC;
                 jps.key = GCFG->_glb.webpass;
-                jps.record = GCFG->_glb.record & 0x3;
-                jps.movepix = _movepix;
-                jps.lapse = 0;
-                _movepix = 0;
+                jps.record  = GCFG->_glb.record & 0x3;
+                jps.format  = (LiFrmHdr::e_format)(GCFG->_glb.wformat & 0xF);
+                jps.insync  = GCFG->_glb.insync;
+                jps.movepix = 0;
+                jps.count   = 0;
+                jps.lapse   = 0;
+                jps.len     = strlen(HEADER_JPG);
+
+
             }while(0);
 
             uint32_t len = sizeof(jps);
-            by=s.sendall((const uint8_t*)&len, (int)sizeof(uint32_t));
+            by = _s.sendall((const uint8_t*)&len, (int)sizeof(uint32_t));
             if(by!=sizeof(uint32_t))
             {
                 std::cout << "SA1 ERROR \r\n";
                 goto DONE;
             }
-            by=s.sendall((const uint8_t*)&jps, (int)sizeof(jps));
+            by=_s.sendall((const uint8_t*)&jps, (int)sizeof(jps));
             if(by!=sizeof(jps))
             {
                 std::cout << "SA2 ERROR \r\n";
                 goto DONE;
             }
-
-            by = s.sendall(HEADER_JPG, strlen(HEADER_JPG));
-
-            while(by && s.isopen() && __alive)
+            if(jps.format == LiFrmHdr::e_mpart_jpeg)
             {
-                if(_length==0)
+                by = _s.sendall(HEADER_JPG, strlen(HEADER_JPG));
+                if(by!=strlen(HEADER_JPG))
                 {
-                    msleep(2+webms);
-                    continue;
-                }
-                 gettimeofday(&timestamp, &tz);
-                int lengb = sprintf(buffer, "Content-Type: image/%s\r\n" \
-                                            "Content-Length: %d\r\n" \
-                                            "X-Timestamp: %d.%06d\r\n" \
-                                            "\r\n", "jpg", _length, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
-                by = s.sendall(buffer, lengb);
-                if(by!=lengb)
-                {
-                    std::cout << "SA3 ERROR \r\n";
+                    std::cout << "SAJ ERROR \r\n";
                     goto DONE;
                 }
-                by = s.sendall(_frame, _length);
-                if(by!=_length)
+            }
+            msleep(1000);
+            while(by && _s.isopen() && __alive)
+            {
+                if(jps.insync)
                 {
-                    std::cout << "SA4 ERROR \r\n";
-                    goto DONE;
+                    needsframe=false;
+                    std::cout << "WAITING \r\n" ;
+                    _s.set_blocking(1);
+                    by = _s.receiveall((uint8_t*)&jps, sizeof(jps));
+                    if(by!=sizeof(jps)){
+                        std::cout << "REC ERROR " << by <<", "<< _s.error() << "\n";
+                        goto DONE;
+                    }
+                    if(jps.len==0){
+                        needsframe=true;
+                    }
+                    if(needsframe==false){
+                        goto END_WILE;
+                    }
                 }
-                _length  = 0;
-                _movepix = 0;
+
+                if(onenter)
+                {
+                    std::string s;
+                    std::cout << "press a key\n" ;
+                    std::cin >> s;
+                }
+
+                do{
+                    AutoLock a(&_mut);
+
+                    if(_length==0){
+                        goto END_WILE;
+                    }
+
+                    if(jps.format == LiFrmHdr::e_mpart_jpeg){
+                        gettimeofday(&timestamp, &tz);
+                        lenhdr = sprintf(buffer, "Content-Type: image/%s\r\n" \
+                                                 "Content-Length: %d\r\n" \
+                                                 "X-Timestamp: %d.%06d\r\n" \
+                                                 "\r\n", "jpg",
+                                         _length,
+                                         (int)timestamp.tv_sec,
+                                         (int)timestamp.tv_usec);
+                    }else{
+                        jps.count++;
+                        jps.len     = _length;
+                        jps.movepix = _movepix;
+                        jps.lapse   = _lapse;
+                        memcpy(buffer, &jps, sizeof(jps));
+                        lenhdr = sizeof jps;
+                    }
+                    by = _s.sendall(buffer, lenhdr);
+                    if(by!=lenhdr)
+                    {
+                        std::cout << "SA3 ERROR " <<lenhdr <<", "<< _s.error() << "\n";
+                        goto DONE;
+                    }
+                    by = _s.sendall(_frame, _length, 6000);
+                    if(by!=_length)
+                    {
+                        std::cout << "SA4 ERROR sent:"<< by <<" != frame:" <<_length << ", " << _s.error() << "\n";
+                        goto DONE;
+                    }
+                    _movepix = 0;
+                    _lapse   = 0;
+                    std::cout << "sent " << _length << "\n" ;
+
+                }while(0);
+                if(jps.format == LiFrmHdr::e_mpart_jpeg)
+                {
+                    ::sprintf(buffer, "\r\n--MY_BOUNDARY_STRING_NOONE_HAS\r\nContent-type: image/%s\r\n", "jpg");
+                    by = _s.sendall(buffer,strlen(buffer),100);
+                    if(by!=strlen(buffer))
+                    {
+                        std::cout << "SABOUND ERROR sent:"<< by <<" != frame:" <<_length << ", " << _s.error() << "\n";
+                        goto DONE;
+                    }
+                }
+END_WILE:
+                msleep(16+webms);
             }
         }
     }
 DONE:
-    s.destroy();
-    msleep(1000);
+    AutoLock a(&_mut);
+    _length  = 0;
+    _movepix = 0;
+    _lapse   = 0;
+    _s.destroy();
     std::cout << "socked close\r\n";
 }
 

@@ -20,7 +20,7 @@ public:
     virtual ~WebCast();
     virtual void thread_main();
     void stream_frame(uint8_t* pjpg, size_t length, int);
-
+    void kill();
 private:
     void _send_tcp(const char* host, const char* camname, int port);
 
@@ -28,7 +28,7 @@ private:
 
     mutex           _mut;
     uint8_t*        _frame  = nullptr;
-    uint32_t        _length = 0;
+    int             _length = 0;
     bool            _headered = false;
     std::string     _upload_page;
     time_t          _last_clicheck=0;
@@ -37,12 +37,14 @@ private:
     int             _movepix = 0;
     bool            _lapse = false;
     sockserver*     _punched = nullptr;
+    tcp_cli_sock    _s;
 };
 
 inline int parseURL(const char* url, char* scheme, size_t
                     maxSchemeLen, char* host, size_t maxHostLen,
                     int* port, char* path, size_t maxPathLen) //Parse URL
 {
+    (void)maxPathLen;
     char* schemePtr = (char*) url;
     char* hostPtr = (char*) strstr(url, "://");
     if(hostPtr == NULL)

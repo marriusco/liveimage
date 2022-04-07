@@ -31,7 +31,6 @@
 #define     WANTS_HTML      0x10
 
 #define  HEADER_JPG "HTTP/1.0 200 OK\r\n" \
-                "HTTP/1.0 200 OK\r\n"       \
                 "Connection: close\r\n"     \
                 "Server: v4l2net/1.0\r\n"   \
                 "Cache-Control: no-cache\r\n"   \
@@ -47,7 +46,7 @@ public:
     imgclient():_needs(0),_headered(false){}
     ~imgclient(){}
     int _needs;
-    bool _headered;
+    bool _headered=false;
     std::string  _message;
 };
 
