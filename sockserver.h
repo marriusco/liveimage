@@ -30,6 +30,16 @@
 #define     WANTS_MAX       0x8
 #define     WANTS_HTML      0x10
 
+#define  HEADER_JPG "HTTP/1.0 200 OK\r\n" \
+                "HTTP/1.0 200 OK\r\n"       \
+                "Connection: close\r\n"     \
+                "Server: v4l2net/1.0\r\n"   \
+                "Cache-Control: no-cache\r\n"   \
+                "Content-Type: multipart/x-mixed-replace;boundary=MY_BOUNDARY_STRING_NOONE_HAS\r\n" \
+                "\r\n" \
+                "--MY_BOUNDARY_STRING_NOONE_HAS\r\n"
+
+
 class imgclient : public tcp_cli_sock
 {
 public:

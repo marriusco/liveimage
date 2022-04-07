@@ -43,8 +43,6 @@ jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
 {
     _pthis=this;
     ::memset(&_cinfo, 0, sizeof(_cinfo));
-
-
     _cinfo.err = ::jpeg_std_error(&_jerr);
     jpeg_create_compress(&_cinfo);
     _jpeg_mem_dest(&_cinfo);
@@ -67,34 +65,38 @@ uint32_t jpeger::convert420(const uint8_t* fmt420, int w, int h,  int quality, u
 
 uint32_t jpeger::convertBW(const uint8_t* uint8buf, int w, int h,  int quality, uint8_t** pjpeg)
 {
-    (void)quality;
-    JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
-    int row_stride;
-
-    memset(_image,255, _memsz);
-
-    _cinfo.image_width = w;
-    _cinfo.image_height = h;
-    _cinfo.input_components = 1;
-    _cinfo.in_color_space = JCS_GRAYSCALE;
-    jpeg_set_defaults(&_cinfo);
-    jpeg_set_colorspace(&_cinfo, JCS_GRAYSCALE);
-    _cinfo.dct_method = JDCT_FASTEST;
-    jpeg_set_quality(&_cinfo, 80, TRUE);
-    jpeg_start_compress(&_cinfo, TRUE);
-    row_stride = w ;
-
-    while (_cinfo.next_scanline < _cinfo.image_height)
+    if(_memsz)
     {
-        row_pointer[0] = (unsigned char*)&uint8buf[_cinfo.next_scanline * row_stride];
-        (void) jpeg_write_scanlines(&_cinfo, row_pointer, 1);
+        (void)quality;
+        JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
+        int row_stride;
+
+        memset(_image,0xFF,_memsz);
+
+        _cinfo.image_width = w;
+        _cinfo.image_height = h;
+        _cinfo.input_components = 1;
+        _cinfo.in_color_space = JCS_GRAYSCALE;
+        jpeg_set_defaults(&_cinfo);
+        jpeg_set_colorspace(&_cinfo, JCS_GRAYSCALE);
+        _cinfo.dct_method = JDCT_FASTEST;
+        jpeg_set_quality(&_cinfo, 80, TRUE);
+        jpeg_start_compress(&_cinfo, TRUE);
+        row_stride = w ;
+
+        while (_cinfo.next_scanline < _cinfo.image_height)
+        {
+            row_pointer[0] = (unsigned char*)&uint8buf[_cinfo.next_scanline * row_stride];
+            (void) jpeg_write_scanlines(&_cinfo, row_pointer, 1);
+        }
+
+        jpeg_finish_compress(&_cinfo);
+        int jpeg_imgsz = _jpeg_mem_size(&_cinfo);
+        *pjpeg = _image;
+
+        return jpeg_imgsz;
     }
-
-    jpeg_finish_compress(&_cinfo);
-    int jpeg_imgsz = _jpeg_mem_size(&_cinfo);
-    *pjpeg = _image;
-
-    return jpeg_imgsz;
+    return 0;
 }
 
 
@@ -145,7 +147,7 @@ int jpeger::_put_jpeg_yuv420p_memory(const uint8_t *pyuv420,
 
                     cb[i / 2] = ( unsigned char*)pyuv420 + width * height + width / 2 * ((i + j) /2);
                     cr[i / 2] = ( unsigned char*)pyuv420 + width * height + (width * height / 4)
-                                +  ((width / 2) * ((i + j) / 2) );
+                            +  ((width / 2) * ((i + j) / 2) );
 
                 }
             }

@@ -232,7 +232,7 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
             continue;
         }
         jpgsz = ffmt->convert420(pb422, iw, ih, GCFG->_glb.quality, &pjpg);
-        if(ps && ps->has_clients())
+        if(ps && ps->has_clients() && jpgsz)
         {
             int wants = ps->anyone_needs();
             if(wants == WANTS_HTML)
@@ -249,7 +249,10 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 int             w,h;
                 const uint8_t*  mot = dev.getm(w, h, sz);
                 size_t          jpgsz1 = ffmt->convertBW(mot, w, h, 80, &pjpg1);
-                ps->stream_on(pjpg1, jpgsz1, GCFG->_glb.format=="jpg" ? "jpeg" : "png", WANTS_MOTION);
+                if(jpgsz1)
+                {
+                    ps->stream_on(pjpg1, jpgsz1, GCFG->_glb.format=="jpg" ? "jpeg" : "png", WANTS_MOTION);
+                }
             }
             else if(wants & WANTS_VIDEO_TODO && robinserve  ==  WANTS_VIDEO_TODO)
             {
@@ -275,7 +278,7 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
                 movepix = dev.movement();
                 if( movepix >= GCFG->_glb.imotion[0] && movepix <= GCFG->_glb.imotion[1])
                 {
-                    std::cout << "move pix=" << movepix << "\n";
+//                    std::cout << "move pix=" << movepix << "\n";
                     savemove = true;
                     movementintertia = GCFG->_glb.motiontrail;
                 }

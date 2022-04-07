@@ -1,5 +1,6 @@
 #include "webcast.h"
 #include "liconfig.h"
+#include "sockserver.h"
 
 #define    JPEG_MAGIC       0x12345678
 
@@ -48,7 +49,6 @@ void WebCast::stream_frame(uint8_t* pjpg, size_t length, int movepix)
     }
     _length = length;
     if(_movepix==0 && movepix){
-        std::cout << "move " << _movepix << "\r\n";
         _movepix = movepix;
     }
     _lapse = 0;
@@ -76,7 +76,7 @@ void WebCast::thread_main()
 
     while(!this->OsThread::is_stopped() && __alive)
     {
-        if((time(0)-ctime > GCFG->_glb.checkcast && _length) || _movepix>0)
+        if((time(0)-ctime > GCFG->_glb.checkcast && _length) || (_movepix>0 && GCFG->_glb.record))
         {
             _send_tcp(host, path+1, port);
             ctime = time(0);
@@ -96,16 +96,20 @@ void WebCast::_send_tcp(const char* host, const char* camname, int port)
     size_t          index = 0;
     int             webms = GCFG->_glb.webms;
     bool            framed=false;
-    LiFrmHdr         jps;
+    LiFrmHdr        jps;
+    char            buffer[256];
+    struct timeval timestamp;
+    struct timezone tz = {5,0};
 
+    s.destroy();
     if(s.create(_cport))
     {
-        if(s.try_connect(host, port)){
+        if(s.connect(host, port)){
             std::cout << "cam stream online \r\n";
         }
         else{
             std::cout << "cam stream offline \r\n";
-            s.destroy();
+            goto DONE;
         }
         for(int k=0; k < 100 && s.is_really_connected()==false;k++)
         {
@@ -127,112 +131,55 @@ void WebCast::_send_tcp(const char* host, const char* camname, int port)
                 jps.lapse = 0;
                 _movepix = 0;
             }while(0);
+
             uint32_t len = sizeof(jps);
             by=s.sendall((const uint8_t*)&len, (int)sizeof(uint32_t));
             if(by!=sizeof(uint32_t))
             {
+                std::cout << "SA1 ERROR \r\n";
                 goto DONE;
             }
-
             by=s.sendall((const uint8_t*)&jps, (int)sizeof(jps));
             if(by!=sizeof(jps))
             {
+                std::cout << "SA2 ERROR \r\n";
                 goto DONE;
             }
-            if(sizeof(jps) != s.receive(( uint8_t*)&jps, (int)sizeof(jps)))
-            {
-                goto DONE;
-            }
-            std::cout << "got connected port:" << jps.conport << "\r\n";
-            if(GCFG->_glb.punchtru && _punched==nullptr)
-            {
-                s.destroy();
-                std::cout << "punchtru  " << GCFG->_glb.punchtru << "\r\n";
-                _punched = new sockserver(jps.conport, "http");
-                if(_punched && _punched->listen()==false)
-                {
-                    delete _punched;
-                    _punched = nullptr;
-                }
-            }
 
-            if(GCFG->_glb.punchtru && _punched)
-            {
+            by = s.sendall(HEADER_JPG, strlen(HEADER_JPG));
 
-                std::cout << "punching \r\n";
-                time_t now = time(0);
-                while(__alive && time(0)-now < PTRU_TOUT){
-                    if(_punched->spin())
-                    {
-                        now = time(0);
-                    }
-                    msleep(32);
-                }
-                delete _punched;
-                _punched = nullptr;
-                std::cout << "punching done\r\n";
-                return;
-            }
-
-            sendonreq = true;
             while(by && s.isopen() && __alive)
             {
-                by = 1;
-                do{
-                    AutoLock a(&_mut);
-                    if(_length && sendonreq)
-                    {
-                        std::cout << ".";
-                        std::cout.flush();
-
-                        jps.count = index++;
-                        jps.magic = JPEG_MAGIC;
-                        jps.len = _length;
-                        jps.confirm = webms==1;
-                        jps.movepix = _movepix;
-                        jps.lapse = _lapse;
-                        jps.movepix = 0;
-
-
-                        by =  s.sendall((const uint8_t*)&jps, sizeof(jps));
-                        if(by!=sizeof(jps)){
-                            std::cout << " stream broken";
-                            goto DONE;
-                        }
-                        by = s.sendall(_frame, _length);
-                        framed = by>0;
-                        _length = 0;
-                        _movepix = 0;
-                    }
-
-                }while(0);
-                if(by==0)
+                if(_length==0)
                 {
-                    std::cout << " stream broken";
+                    msleep(2+webms);
+                    continue;
+                }
+                 gettimeofday(&timestamp, &tz);
+                int lengb = sprintf(buffer, "Content-Type: image/%s\r\n" \
+                                            "Content-Length: %d\r\n" \
+                                            "X-Timestamp: %d.%06d\r\n" \
+                                            "\r\n", "jpg", _length, (int)timestamp.tv_sec, (int)timestamp.tv_usec);
+                by = s.sendall(buffer, lengb);
+                if(by!=lengb)
+                {
+                    std::cout << "SA3 ERROR \r\n";
                     goto DONE;
                 }
-                else if(webms==1)
+                by = s.sendall(_frame, _length);
+                if(by!=_length)
                 {
-                    if(framed){
-                        LiFrmHdr jps;
-                        if(sizeof(jps)==s.select_receive((uint8_t*)&jps, sizeof(jps), 5000))
-                        {
-                            std::cout << " frame confirmed";
-                            sendonreq = true;
-                        }
-                        else{
-                            std::cout << "socked closed ont server\r\n";
-                            sendonreq = false;
-                            goto DONE;
-                        }
-                    }
+                    std::cout << "SA4 ERROR \r\n";
+                    goto DONE;
                 }
-                msleep(16+webms);
+                _length  = 0;
+                _movepix = 0;
             }
         }
     }
 DONE:
     s.destroy();
+    msleep(1000);
     std::cout << "socked close\r\n";
 }
 

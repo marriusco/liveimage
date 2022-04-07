@@ -312,16 +312,7 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     gettimeofday(&timestamp, &tz);
     if(!pc->_headered)
     {
-        sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
-                        "HTTP/1.0 200 OK\r\n"
-                        "Connection: close\r\n"
-                        "Server: v4l2net/1.0\r\n"
-                        "Cache-Control: no-cache\r\n"
-                        "Content-Type: multipart/x-mixed-replace;boundary=MY_BOUNDARY_STRING_NOONE_HAS\r\n" \
-                        "\r\n" \
-                        "--MY_BOUNDARY_STRING_NOONE_HAS\r\n");
-
-        rv = pc->sendall(buffer, strlen(buffer),100);
+        rv = pc->sendall(HEADER_JPG, strlen(HEADER_JPG),100);
         if(rv==0)
         {
             pc->destroy();
