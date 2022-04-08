@@ -5,6 +5,32 @@
 #include "sock.h"
 #include "sockserver.h"
 
+
+#define    JPEG_MAGIC       0x12345678
+
+#define         PTRU_TOUT  30
+#define          PACK_ALIGN_1   __attribute__((packed, aligned(1)))
+
+struct  LiFrmHdr{
+    enum e_format{e_mpart_jpeg, e_jpeg, e_mov};
+    uint32_t    len;
+    uint32_t    magic;
+    uint32_t    mac;
+    uint32_t    key;
+    uint32_t    count;
+    uint32_t    movepix;
+    uint16_t    conport;
+    uint16_t    wh[2];
+    uint8_t     lapse:1;
+    uint8_t     insync:1;
+    uint8_t     record:2;
+    e_format    format:4;
+    char        command[16];
+    char        camname[16];
+}PACK_ALIGN_1;
+
+
+
 class WebCast : public OsThread
 {
     enum eHOW{
@@ -19,7 +45,7 @@ public:
     WebCast();
     virtual ~WebCast();
     virtual void thread_main();
-    void stream_frame(uint8_t* pjpg, size_t length, int);
+    void stream_frame(uint8_t* pjpg, size_t length, int mp, int w, int h);
     void kill();
 private:
     void _send_tcp(const char* host, const char* camname, int port);
@@ -28,17 +54,13 @@ private:
 
     mutex           _mut;
     uint8_t*        _frame  = nullptr;
-    uint32_t        _length = 0;
-    uint32_t        _buffsz = 0;
     bool            _headered = false;
-    std::string     _upload_page;
     time_t          _last_clicheck=0;
     int             _cport = 0;
-    int             _offset = 0;
-    int             _movepix = 0;
-    bool            _lapse = false;
     sockserver*     _punched = nullptr;
     tcp_cli_sock    _s;
+    LiFrmHdr        _jps;
+    size_t          _buffsz=0;
 };
 
 inline int parseURL(const char* url, char* scheme, size_t

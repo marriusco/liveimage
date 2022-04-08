@@ -135,7 +135,7 @@ int main(int nargs, char* vargs[])
             }
         }
 
-        outfilefmt*     ffmt = 0;
+        outfilefmt*  ffmt = 0;
         ffmt = new jpeger(conf._glb.quality);
 
         uint64_t maxfiles=0;
@@ -182,7 +182,7 @@ void calc_room(const std::string& pathname, int& firstimage, uint64_t& maximages
     FILE* pff = ::fopen("./.lastimage","rb");
     if(pff)
     {
-        char index[8];
+        char index[32];
         ::fgets(index, 7, pff);
         firstimage=::atoi(index);
         ::fclose(pff);
@@ -321,13 +321,15 @@ void capture(outfilefmt* ffmt, sockserver* ps, v4ldevice& dev,
 
         if(!cast.is_stopped())
         {
-            cast.stream_frame(pjpg, jpgsz, movepix);
+            cast.stream_frame(pjpg, jpgsz, movepix, iw, ih);
         }
         else{
-            if(!pathname.empty() && (savelapse || savemove || GCFG->_glb.oneshot || _sig_proc_capture) )
+            if(!pathname.empty() && (savelapse || savemove ||
+                                     GCFG->_glb.oneshot || _sig_proc_capture) )
             {
                 char fname[256];
-                ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(), movepix, firstimage);
+                ::sprintf(fname, "%si%04d-%06d.jpg", pathname.c_str(),
+                          movepix, firstimage);
                 ++firstimage;
                 if(firstimage > maxfiles)  firstimage = 0;
                 FILE* 		pff = ::fopen(fname,"wb");

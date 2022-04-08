@@ -215,6 +215,7 @@ int sock::set_blocking(const unsigned long block)
         return (fcntl(_thesock, F_SETFL, flags) == 0) ? true : false;
 #endif
     }
+    return 0;
 }
 
 //-----------------------------------------------------------------------------

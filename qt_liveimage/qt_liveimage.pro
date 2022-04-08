@@ -32,7 +32,9 @@ DISTFILES += \
     ../../../../var/www/html/stream2.php \
     ../../../../var/www/html/upload.php \
     ../liveimage.conf \
-    ../liveimage.conf
+    ../liveimage.conf \
+    ../liveimage.conf \
+    ../liveimage.conf_sample
 
 HEADERS += \
     ../config.h \

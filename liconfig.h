@@ -108,7 +108,7 @@ public:
         string  transport;
         string  kodek;
         int     checkcast = 10; // to check the server
-        int     wformat = 0;
+        int     wformat = 1;
         int     webpass = 0;
         int     onenter = 0;
         int     insync = 0;

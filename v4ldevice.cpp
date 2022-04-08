@@ -299,7 +299,7 @@ void v4ldevice::close()
 {
     if(_pmt)
     {
-        delete _pmt;
+        delete[] _pmt;
         _pmt = 0;
     }
     if(_device>0)
