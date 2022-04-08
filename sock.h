@@ -362,7 +362,7 @@
         virtual int     receive(unsigned char* buff, int length,  SADDR_46& rsin){UNUS(rsin); return receive(buff,length);}
         virtual int     receive(char* buff, int length, int port=0, const char* ip=0  );
         virtual int     receive(char* buff, int length,  SADDR_46& rsin){UNUS(rsin); return receive(buff,length);}
-        virtual int     sendall(const unsigned char* buff,  int length, int tout=8000);
+        virtual int     sendall(const unsigned char* buff,  int length, int tout=100);
         virtual int     sendall(const char* buff, int length, int tout=8000){return sendall((unsigned char*)buff, length, tout);}
         int             receiveall( unsigned char* buff, const int length);
         bool            isopen()const;

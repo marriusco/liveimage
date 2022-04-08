@@ -191,7 +191,7 @@ bool sockserver::snap_on( const uint8_t* jpg, uint32_t sz, const char* ifmt)
                         "Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n"
                         "Pragma: no-cache\r\n"
                         "Expires: Mon, 3 Jan 2000 12:34:56 GMT\r\n"
-                        "Content-type: image/%s\r\n"
+                        "Content-Type: image/%s\r\n"
                         "Content-length: %d\r\n"
                         "X-Timestamp: %d.%06d\r\n\r\n";
     struct  timeval timestamp;
@@ -312,14 +312,16 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     gettimeofday(&timestamp, &tz);
     if(!pc->_headered)
     {
+        std::cout << "HEADERING .................. \r\n";
         rv = pc->sendall(HEADER_JPG, strlen(HEADER_JPG),100);
-        if(rv==0)
+        if(rv!=strlen(HEADER_JPG))
         {
             pc->destroy();
             _dirty=true;
             return false;
         }
         pc->_headered=true;
+        msleep(256);
     }
     sprintf(buffer, "Content-Type: image/%s\r\n" \
                     "Content-Length: %d\r\n" \
@@ -330,6 +332,7 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     {
         pc->destroy();
         _dirty=true;
+        pc->_headered = false;
         return false;
     }
     rv = pc->sendall(buff,sz,1000);
@@ -337,6 +340,7 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     {
         pc->destroy();
         _dirty=true;
+        pc->_headered = false;
         return false;
     }
     ::sprintf(buffer, "\r\n--MY_BOUNDARY_STRING_NOONE_HAS\r\nContent-type: image/%s\r\n", ifmt);
@@ -344,6 +348,7 @@ bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, 
     if(rv==0)
     {
         pc->destroy();
+        pc->_headered=false;
         _dirty=true;
     }
     return true;
@@ -355,6 +360,7 @@ bool sockserver::_stream_video(imgclient* pc, const uint8_t* buff, uint32_t sz)
     if(rv==0)
     {
         pc->destroy();
+        pc->_headered=false;
         _dirty=true;
         return false;
     }

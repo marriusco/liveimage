@@ -122,8 +122,10 @@ void LiConfig::_assign( const char* pred, const char* val, int line)
             BIND(_glb, maxfiles);
             BIND(_glb, webcast);
             BIND(_glb, checkcast);
+            BIND(_glb, wformat);
             BIND(_glb, webpass);
-            BIND(_glb, punchtru);
+            BIND(_glb, onenter);
+            BIND(_glb, insync);
             BIND(_glb, record);
 
             BIND(_glb, webms);
