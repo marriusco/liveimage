@@ -17,6 +17,7 @@
     First Release: September 16 - 29 2016
 */
 #include <iostream>
+#include <assert.h>
 #include "jpeger.h"
 
 
@@ -26,9 +27,9 @@ extern bool __alive;
 typedef struct
 {
     struct jpeg_destination_mgr pub;
-    JOCTET *buf;
-    size_t bufsize;
-    size_t jpegsize;
+    JOCTET *buf=nullptr;
+    size_t bufsize=0;
+    size_t jpegsize=0;
 } mem_destination_mgr;
 
 typedef mem_destination_mgr *mem_dest_ptr;
@@ -46,7 +47,6 @@ jpeger::jpeger(int q):_image(0),_jpegQuality(q),_imgsize(0),_memsz(0)
     _cinfo.err = ::jpeg_std_error(&_jerr);
     jpeg_create_compress(&_cinfo);
     _jpeg_mem_dest(&_cinfo);
-
 }
 
 jpeger::~jpeger()
@@ -177,12 +177,11 @@ void jpeger:: _jpeg_mem_dest(j_compress_ptr cinfo)
     dest->pub.term_destination    = _term_destination;
 
     dest->buf      = _image = (uint8_t*)malloc(BLOCK_SZ);
+    assert(dest->buf);
     dest->bufsize  = _memsz = BLOCK_SZ;
     dest->jpegsize = 0;
-
     _init_destination(&_cinfo);
-
-    // std::cout << "      JPEGER MEM DEST \r\n";
+     std::cout << "      JPEGER MEM DEST \r\n";
 
 }
 
@@ -192,8 +191,6 @@ static void  _init_destination(j_compress_ptr cinfo)
     dest->pub.next_output_byte  = dest->buf;
     dest->pub.free_in_buffer    = dest->bufsize;
     dest->jpegsize = 0;
-
-    // std::cout << "      JPEGER INIT TO "<<dest->buf <<","<<dest->bufsize << "bytes \r\n";
 }
 
 static boolean  _empty_output_buffer(j_compress_ptr cinfo)
@@ -216,7 +213,7 @@ static boolean  _empty_output_buffer(j_compress_ptr cinfo)
     dest->buf = _pthis->_image;
     dest->bufsize = _pthis->_memsz;
 
-    // std::cout << "      JPEGER REALLOC TO "<<dest->buf <<","<<dest->bufsize << "bytes \r\n";
+    std::cout << "      JPEGER REALLOC TO "<<dest->buf <<","<<dest->bufsize << "bytes \r\n";
     return TRUE;
 }
 

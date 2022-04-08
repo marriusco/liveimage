@@ -45,9 +45,17 @@ void WebCast::stream_frame(uint8_t* pjpg, size_t length, int movepix)
     AutoLock a(&_mut);
 
     if(_frame==nullptr){
-        _frame = new uint8_t[length * 2];
+        _frame = new uint8_t[length+4094];
+	std::cout << "new " << length << "\n";
+        _buffsz = length+4096;
     }
-    _length = length;
+    if(length > _buffsz){
+    	delete[] _frame;
+        _frame = new uint8_t[length+4096];
+	std::cout << "renew " << length << "\n";
+        _buffsz = length+4096;
+    }
+    _length=_buffsz;
     if(_movepix==0 && movepix){
         _movepix = movepix;
     }
@@ -104,6 +112,7 @@ void WebCast::_send_tcp(const char* host, const char* camname, int port)
     s.destroy();
     if(s.create(_cport))
     {
+	s.set_blocking(0);
         if(s.connect(host, port)){
             std::cout << "cam stream online \r\n";
         }

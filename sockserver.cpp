@@ -304,7 +304,7 @@ bool sockserver::stream_on(const uint8_t* buff, uint32_t sz, const char* ifmt, i
 
 bool sockserver::_stream_image(imgclient* pc, const uint8_t* buff, uint32_t sz, const char* ifmt)
 {
-    char buffer[256] = {0};
+    char buffer[356] = {0};
     struct timeval timestamp;
     struct timezone tz = {5,0};
     int rv = 0;

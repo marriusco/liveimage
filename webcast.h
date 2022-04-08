@@ -29,6 +29,7 @@ private:
     mutex           _mut;
     uint8_t*        _frame  = nullptr;
     uint32_t        _length = 0;
+    uint32_t        _buffsz = 0;
     bool            _headered = false;
     std::string     _upload_page;
     time_t          _last_clicheck=0;
